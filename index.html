@@ -61,6 +61,16 @@ body{background:#1a1a2e;height:100vh;height:100dvh;display:flex;align-items:cent
 .actions{display:flex;gap:6px}
 .icon-btn{width:42px;height:42px;border-radius:12px;border:none;background:rgba(255,255,255,.5);color:#667eea;font-size:18px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;position:relative}
 .search{padding:14px 18px}.search input{width:100%;padding:14px 18px;background:rgba(244,247,252,.95);border:1px solid #e8edf2;border-radius:16px;font-size:15px;outline:none}
+.user-search-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;cursor:pointer;background:#fff;margin-bottom:6px;border:1px solid #e8edf2;transition:background .15s}
+.user-search-item:hover{background:#f4f7fc}
+.user-search-item .us-av{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;flex-shrink:0;background-size:cover;background-position:center;position:relative}
+.user-search-item .us-info{flex:1;min-width:0}
+.user-search-item .us-name{font-weight:700;font-size:14px;color:#1a1a2e;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-search-item .us-bio{font-size:12px;color:#8e98a3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.user-search-item .us-btn{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0}
+.user-search-item .us-btn:active{transform:scale(.95)}
+.user-search-empty{text-align:center;color:#8e98a3;font-size:13px;padding:16px}
+.user-search-section-title{font-size:11px;font-weight:700;color:#8e98a3;text-transform:uppercase;letter-spacing:1px;padding:8px 6px 6px}
 .chats-list{flex:1;overflow-y:auto;padding:8px 12px;-webkit-overflow-scrolling:touch}
 .chat-item{display:flex;align-items:center;padding:14px;border-radius:18px;cursor:pointer;margin-bottom:4px;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);transition:transform .15s ease-out,background .15s;user-select:none;position:relative}
 .chat-item.holding{transform:scale(.97);background:#e8f0ff}
@@ -432,8 +442,12 @@ input:checked+.slider:before{transform:translateX(26px)}
 <button class="icon-btn" id="settingsBtn" type="button"><i class="fas fa-cog"></i></button>
 <button class="icon-btn" id="logoutBtn" type="button"><i class="fas fa-sign-out-alt"></i></button>
 </div></div>
-<div class="search"><input type="text" id="chatSearch" data-i18n-ph="chat_search" placeholder="🔍 Поиск..."></div>
+<div class="search"><input type="text" id="chatSearch" data-i18n-ph="chat_search" placeholder="🔍 Поиск людей и чатов..."></div>
 <div class="chats-list" id="chatsList"></div>
+<div id="usersSearchResults" style="display:none;padding:0 12px 12px">
+  <div class="user-search-section-title">👥 Пользователи DonorGram</div>
+  <div id="usersSearchList"></div>
+</div>
 </div>
 <div class="main-area" id="mainArea">
 <div class="chat-header" id="chatHeaderWrap">
@@ -724,7 +738,7 @@ firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 const CALC_URL='https://troll2281488.github.io/Cksksksje/';
 
-const TRANSLATIONS={ru:{welcome_title_0:'DonorGram',welcome_sub_0:'Самый быстрый мессенджер в мире. Бесплатный и безопасный.',welcome_title_1:'Быстро',welcome_sub_1:'DonorGram работает быстрее любых других приложений.',welcome_title_2:'Свободно',welcome_sub_2:'DonorGram — свободный мессенджер. Никакой рекламы.',welcome_title_3:'Мощно',welcome_sub_3:'DonorGram не имеет ограничений на размер файлов.',welcome_title_4:'Облачно',welcome_sub_4:'Доступ к сообщениям с нескольких устройств.',welcome_start:'Начать общение',welcome_choose_lang:'Выберите язык',login_name:'Никнейм',login_pass:'Пароль',login_avatar:'Аватар (2 буквы)',login_btn:'Войти / Регистрация',login_users:'пользователей',chat_search:'🔍 Поиск...',chat_select:'Выберите чат',chat_type:'Сообщение...',chat_online:'🟢 в сети',chat_offline:'⚫ не в сети',chat_notes:'⭐ Избранное',chat_no_msgs:'Нет сообщений',chat_editing:'Редактирование',chat_rec_cancel:'Отмена',chat_rec_send:'➤ Отправить',chat_clear:'🗑 Очистить историю',chat:'⚙️ Чат',chat_started:'Сообщений пока нет. Напишите первым!',action_reply:'Ответить',action_copy:'Копировать',action_edit:'Редактировать',action_pin:'Закрепить',action_delete_me:'Удалить у себя',action_delete:'Удалить у всех',settings:'⚙️ Настройки',settings_lang:'🌐 Язык',settings_push:'🔔 Push-уведомления',settings_notif:'🔔 Уведомления',settings_sound:'🔊 Звук',settings_vibro:'📳 Вибрация',settings_edit_profile:'✏️ Редактировать профиль',profile:'👤 Профиль',profile_name:'Имя:',profile_bio:'Статус:',profile_online:'Онлайн:',profile_edit_btn:'✏️ РЕДАКТИРОВАТЬ ПРОФИЛЬ',profile_shop_btn:'🛍️ МАГАЗИН',profile_settings_btn:'⚙️ НАСТРОЙКИ',profile_sg_off:'🔄 Отключить SpaceGod',profile_sg_on:'✅ Включить SpaceGod',profile_block:'🚫 ЗАБЛОКИРОВАТЬ',profile_unblock:'✅ РАЗБЛОКИРОВАТЬ',profile_no_status:'Нет статуса',profile_my:'👤 Мой профиль',editprofile_title:'✏️ Редактировать профиль',editprofile_avatar:'Аватар (2 буквы)',editprofile_name:'Имя',editprofile_bio:'Описание (статус)',editprofile_pass:'Новый пароль (пусто = не менять)',cancel:'Отмена',save:'💾 Сохранить',shop:'🛍️ Магазин',shop_all_free:'✨ ВСЁ БЕСПЛАТНО',shop_avatars:'👤 Аватарки',shop_bubbles:'💬 Пузыри',shop_special:'🌟 Особые',shop_sg:'🌈 SPACEGOD',shop_upload_theme:'📷 Загрузить своё фото',shop_reset_theme:'🗑 Сбросить тему',attach:'📎 Вложения',attach_photo:'Отправить фото',attach_video:'Отправить видео',users:'👥 Пользователи',bg:'🎨 Обои чата',stickers:'😎 Стикеры',logout_confirm:'Выйти из аккаунта?',logout:'Выйти',notif_enable:'🔔 Включить уведомления?',notif_on:'ВКЛ',err_fill:'❌ Введите ник и пароль',err_pass:'❌ Неверный пароль',err_blocked:'❌ Заблокирован',toast_hello:'✅ Привет,',toast_copied:'📋',toast_deleted:'🗑',toast_saved:'💾',toast_error:'❌ Ошибка',no_other_users:'Пока нет других пользователей',you_offline:'⚫ не в сети',you_online:'🟢 в сети',call_btn:'📞 Позвонить',call_no_perm:'❌ Нет доступа к микрофону',call_calling:'📞 Вызов...',call_incoming:'📞 Входящий звонок',call_connected:'🔊 Разговор',call_ended:'Звонок завершён',call_declined:'❌ Звонок отклонён',call_timeout:'⏱ Никто не ответил',call_speaker_on:'🔊 Динамик вкл',call_speaker_off:'🔈 Динамик выкл'},en:{welcome_title_0:'DonorGram',welcome_sub_0:'The fastest messenger in the world. Free and secure.',welcome_title_1:'Fast',welcome_sub_1:'DonorGram works faster than any other app.',welcome_title_2:'Free',welcome_sub_2:'DonorGram is a free messenger. No ads.',welcome_title_3:'Powerful',welcome_sub_3:'DonorGram has no file size limits.',welcome_title_4:'Cloud',welcome_sub_4:'Access messages from multiple devices.',welcome_start:'Start Messaging',welcome_choose_lang:'Choose language',login_name:'Nickname',login_pass:'Password',login_avatar:'Avatar (2 letters)',login_btn:'Login / Sign up',login_users:'users',chat_search:'🔍 Search...',chat_select:'Select chat',chat_type:'Message...',chat_online:'🟢 online',chat_offline:'⚫ offline',chat_notes:'⭐ Saved',chat_no_msgs:'No messages',chat_editing:'Editing',chat_rec_cancel:'Cancel',chat_rec_send:'➤ Send',chat_clear:'🗑 Clear history',chat:'⚙️ Chat',chat_started:'No messages yet. Write first!',action_reply:'Reply',action_copy:'Copy',action_edit:'Edit',action_pin:'Pin',action_delete_me:'Delete for me',action_delete:'Delete for everyone',settings:'⚙️ Settings',settings_lang:'🌐 Language',settings_push:'🔔 Push notifications',settings_notif:'🔔 Notifications',settings_sound:'🔊 Sound',settings_vibro:'📳 Vibration',settings_edit_profile:'✏️ Edit profile',profile:'👤 Profile',profile_name:'Name:',profile_bio:'Status:',profile_online:'Online:',profile_edit_btn:'✏️ EDIT PROFILE',profile_shop_btn:'🛍️ SHOP',profile_settings_btn:'⚙️ SETTINGS',profile_sg_off:'🔄 Disable SpaceGod',profile_sg_on:'✅ Enable SpaceGod',profile_block:'🚫 BLOCK',profile_unblock:'✅ UNBLOCK',profile_no_status:'No status',profile_my:'👤 My profile',editprofile_title:'✏️ Edit profile',editprofile_avatar:'Avatar (2 letters)',editprofile_name:'Name',editprofile_bio:'Bio (status)',editprofile_pass:'New password (empty = keep)',cancel:'Cancel',save:'💾 Save',shop:'🛍️ Shop',shop_all_free:'✨ ALL FREE',shop_avatars:'👤 Avatars',shop_bubbles:'💬 Bubbles',shop_special:'🌟 Special',shop_sg:'🌈 SPACEGOD',shop_upload_theme:'📷 Upload your photo',shop_reset_theme:'🗑 Reset theme',attach:'📎 Attachments',attach_photo:'Send photo',attach_video:'Send video',users:'👥 Users',bg:'🎨 Chat wallpaper',stickers:'😎 Stickers',logout_confirm:'Logout from account?',logout:'Logout',notif_enable:'🔔 Enable notifications?',notif_on:'ON',err_fill:'❌ Enter nickname and password',err_pass:'❌ Wrong password',err_blocked:'❌ Blocked',toast_hello:'✅ Hi,',toast_copied:'📋',toast_deleted:'🗑',toast_saved:'💾',toast_error:'❌ Error',no_other_users:'No other users yet',you_offline:'⚫ offline',you_online:'🟢 online',call_btn:'📞 Call',call_no_perm:'❌ No microphone access',call_calling:'📞 Calling...',call_incoming:'📞 Incoming call',call_connected:'🔊 Connected',call_ended:'Call ended',call_declined:'❌ Call declined',call_timeout:'⏱ No answer',call_speaker_on:'🔊 Speaker on',call_speaker_off:'🔈 Speaker off'},uk:{welcome_title_0:'DonorGram',welcome_sub_0:'Найшвидший месенджер у світі. Безкоштовний і безпечний.',welcome_title_1:'Швидко',welcome_sub_1:'DonorGram працює швидше за будь-які інші додатки.',welcome_title_2:'Вільно',welcome_sub_2:'DonorGram — вільний месенджер. Жодної реклами.',welcome_title_3:'Потужно',welcome_sub_3:'DonorGram не має обмежень на розмір файлів.',welcome_title_4:'У хмарі',welcome_sub_4:'Доступ до повідомлень з кількох пристроїв.',welcome_start:'Почати спілкування',welcome_choose_lang:'Виберіть мову',login_name:'Нікнейм',login_pass:'Пароль',login_avatar:'Аватар (2 літери)',login_btn:'Увійти / Реєстрація',login_users:'користувачів',chat_search:'🔍 Пошук...',chat_select:'Виберіть чат',chat_type:'Повідомлення...',chat_online:'🟢 онлайн',chat_offline:'⚫ офлайн',chat_notes:'⭐ Обране',chat_no_msgs:'Немає повідомлень',chat_editing:'Редагування',chat_rec_cancel:'Скасувати',chat_rec_send:'➤ Надіслати',chat_clear:'🗑 Очистити історію',chat:'⚙️ Чат',chat_started:'Повідомлень поки немає. Напишіть першим!',action_reply:'Відповісти',action_copy:'Копіювати',action_edit:'Редагувати',action_pin:'Закріпити',action_delete_me:'Видалити у себе',action_delete:'Видалити у всіх',settings:'⚙️ Налаштування',settings_lang:'🌐 Мова',settings_push:'🔔 Push-повідомлення',settings_notif:'🔔 Повідомлення',settings_sound:'🔊 Звук',settings_vibro:'📳 Вібрація',settings_edit_profile:'✏️ Редагувати профіль',profile:'👤 Профіль',profile_name:"Ім'я:",profile_bio:'Статус:',profile_online:'Онлайн:',profile_edit_btn:'✏️ РЕДАГУВАТИ ПРОФІЛЬ',profile_shop_btn:'🛍️ МАГАЗИН',profile_settings_btn:'⚙️ НАЛАШТУВАННЯ',profile_sg_off:'🔄 Вимкнути SpaceGod',profile_sg_on:'✅ Увімкнути SpaceGod',profile_block:'🚫 ЗАБЛОКУВАТИ',profile_unblock:'✅ РОЗБЛОКУВАТИ',profile_no_status:'Немає статусу',profile_my:'👤 Мій профіль',editprofile_title:'✏️ Редагувати профіль',editprofile_avatar:'Аватар (2 літери)',editprofile_name:"Ім'я",editprofile_bio:'Опис (статус)',editprofile_pass:'Новий пароль (пусто = не змінювати)',cancel:'Скасувати',save:'💾 Зберегти',shop:'🛍️ Магазин',shop_all_free:'✨ ВСЕ БЕЗКОШТОВНО',shop_avatars:'👤 Аватарки',shop_bubbles:'💬 Бульбашки',shop_special:'🌟 Особливі',shop_sg:'🌈 SPACEGOD',shop_upload_theme:'📷 Завантажити своє фото',shop_reset_theme:'🗑 Скинути тему',attach:'📎 Вкладення',attach_photo:'Надіслати фото',attach_video:'Надіслати відео',users:'👥 Користувачі',bg:'🎨 Шпалери чату',stickers:'😎 Стікери',logout_confirm:'Вийти з акаунта?',logout:'Вийти',notif_enable:'🔔 Увімкнути повідомлення?',notif_on:'УВІМК',err_fill:'❌ Введіть нік та пароль',err_pass:'❌ Невірний пароль',err_blocked:'❌ Заблоковано',toast_hello:'✅ Привіт,',toast_copied:'📋',toast_deleted:'🗑',toast_saved:'💾',toast_error:'❌ Помилка',no_other_users:'Поки немає інших користувачів',you_offline:'⚫ офлайн',you_online:'🟢 онлайн',call_btn:'📞 Подзвонити',call_no_perm:'❌ Немає доступу до мікрофона',call_calling:'📞 Виклик...',call_incoming:'📞 Вхідний виклик',call_connected:'🔊 Розмова',call_ended:'Виклик завершено',call_declined:'❌ Виклик відхилено',call_timeout:'⏱ Ніхто не відповів',call_speaker_on:'🔊 Динамік увімк',call_speaker_off:'🔈 Динамік вимк'}};
+const TRANSLATIONS={ru:{welcome_title_0:'DonorGram',welcome_sub_0:'Самый быстрый мессенджер в мире. Бесплатный и безопасный.',welcome_title_1:'Быстро',welcome_sub_1:'DonorGram работает быстрее любых других приложений.',welcome_title_2:'Свободно',welcome_sub_2:'DonorGram — свободный мессенджер. Никакой рекламы.',welcome_title_3:'Мощно',welcome_sub_3:'DonorGram не имеет ограничений на размер файлов.',welcome_title_4:'Облачно',welcome_sub_4:'Доступ к сообщениям с нескольких устройств.',welcome_start:'Начать общение',welcome_choose_lang:'Выберите язык',login_name:'Никнейм',login_pass:'Пароль',login_avatar:'Аватар (2 буквы)',login_btn:'Войти / Регистрация',login_users:'пользователей',chat_search:'🔍 Поиск людей и чатов...',chat_select:'Выберите чат',chat_type:'Сообщение...',chat_online:'🟢 в сети',chat_offline:'⚫ не в сети',chat_notes:'⭐ Избранное',chat_no_msgs:'Нет сообщений',chat_editing:'Редактирование',chat_rec_cancel:'Отмена',chat_rec_send:'➤ Отправить',chat_clear:'🗑 Очистить историю',chat:'⚙️ Чат',chat_started:'Сообщений пока нет. Напишите первым!',action_reply:'Ответить',action_copy:'Копировать',action_edit:'Редактировать',action_pin:'Закрепить',action_delete_me:'Удалить у себя',action_delete:'Удалить у всех',settings:'⚙️ Настройки',settings_lang:'🌐 Язык',settings_push:'🔔 Push-уведомления',settings_notif:'🔔 Уведомления',settings_sound:'🔊 Звук',settings_vibro:'📳 Вибрация',settings_edit_profile:'✏️ Редактировать профиль',profile:'👤 Профиль',profile_name:'Имя:',profile_bio:'Статус:',profile_online:'Онлайн:',profile_edit_btn:'✏️ РЕДАКТИРОВАТЬ ПРОФИЛЬ',profile_shop_btn:'🛍️ МАГАЗИН',profile_settings_btn:'⚙️ НАСТРОЙКИ',profile_sg_off:'🔄 Отключить SpaceGod',profile_sg_on:'✅ Включить SpaceGod',profile_block:'🚫 ЗАБЛОКИРОВАТЬ',profile_unblock:'✅ РАЗБЛОКИРОВАТЬ',profile_no_status:'Нет статуса',profile_my:'👤 Мой профиль',editprofile_title:'✏️ Редактировать профиль',editprofile_avatar:'Аватар (2 буквы)',editprofile_name:'Имя',editprofile_bio:'Описание (статус)',editprofile_pass:'Новый пароль (пусто = не менять)',cancel:'Отмена',save:'💾 Сохранить',shop:'🛍️ Магазин',shop_all_free:'✨ ВСЁ БЕСПЛАТНО',shop_avatars:'👤 Аватарки',shop_bubbles:'💬 Пузыри',shop_special:'🌟 Особые',shop_sg:'🌈 SPACEGOD',shop_upload_theme:'📷 Загрузить своё фото',shop_reset_theme:'🗑 Сбросить тему',attach:'📎 Вложения',attach_photo:'Отправить фото',attach_video:'Отправить видео',users:'👥 Пользователи',bg:'🎨 Обои чата',stickers:'😎 Стикеры',logout_confirm:'Выйти из аккаунта?',logout:'Выйти',notif_enable:'🔔 Включить уведомления?',notif_on:'ВКЛ',err_fill:'❌ Введите ник и пароль',err_pass:'❌ Неверный пароль',err_blocked:'❌ Заблокирован',toast_hello:'✅ Привет,',toast_copied:'📋',toast_deleted:'🗑',toast_saved:'💾',toast_error:'❌ Ошибка',no_other_users:'Пока нет других пользователей',you_offline:'⚫ не в сети',you_online:'🟢 в сети',call_btn:'📞 Позвонить',call_no_perm:'❌ Нет доступа к микрофону',call_calling:'📞 Вызов...',call_incoming:'📞 Входящий звонок',call_connected:'🔊 Разговор',call_ended:'Звонок завершён',call_declined:'❌ Звонок отклонён',call_timeout:'⏱ Никто не ответил',call_speaker_on:'🔊 Динамик вкл',call_speaker_off:'🔈 Динамик выкл'},en:{welcome_title_0:'DonorGram',welcome_sub_0:'The fastest messenger in the world. Free and secure.',welcome_title_1:'Fast',welcome_sub_1:'DonorGram works faster than any other app.',welcome_title_2:'Free',welcome_sub_2:'DonorGram is a free messenger. No ads.',welcome_title_3:'Powerful',welcome_sub_3:'DonorGram has no file size limits.',welcome_title_4:'Cloud',welcome_sub_4:'Access messages from multiple devices.',welcome_start:'Start Messaging',welcome_choose_lang:'Choose language',login_name:'Nickname',login_pass:'Password',login_avatar:'Avatar (2 letters)',login_btn:'Login / Sign up',login_users:'users',chat_search:'🔍 Search people and chats...',chat_select:'Select chat',chat_type:'Message...',chat_online:'🟢 online',chat_offline:'⚫ offline',chat_notes:'⭐ Saved',chat_no_msgs:'No messages',chat_editing:'Editing',chat_rec_cancel:'Cancel',chat_rec_send:'➤ Send',chat_clear:'🗑 Clear history',chat:'⚙️ Chat',chat_started:'No messages yet. Write first!',action_reply:'Reply',action_copy:'Copy',action_edit:'Edit',action_pin:'Pin',action_delete_me:'Delete for me',action_delete:'Delete for everyone',settings:'⚙️ Settings',settings_lang:'🌐 Language',settings_push:'🔔 Push notifications',settings_notif:'🔔 Notifications',settings_sound:'🔊 Sound',settings_vibro:'📳 Vibration',settings_edit_profile:'✏️ Edit profile',profile:'👤 Profile',profile_name:'Name:',profile_bio:'Status:',profile_online:'Online:',profile_edit_btn:'✏️ EDIT PROFILE',profile_shop_btn:'🛍️ SHOP',profile_settings_btn:'⚙️ SETTINGS',profile_sg_off:'🔄 Disable SpaceGod',profile_sg_on:'✅ Enable SpaceGod',profile_block:'🚫 BLOCK',profile_unblock:'✅ UNBLOCK',profile_no_status:'No status',profile_my:'👤 My profile',editprofile_title:'✏️ Edit profile',editprofile_avatar:'Avatar (2 letters)',editprofile_name:'Name',editprofile_bio:'Bio (status)',editprofile_pass:'New password (empty = keep)',cancel:'Cancel',save:'💾 Save',shop:'🛍️ Shop',shop_all_free:'✨ ALL FREE',shop_avatars:'👤 Avatars',shop_bubbles:'💬 Bubbles',shop_special:'🌟 Special',shop_sg:'🌈 SPACEGOD',shop_upload_theme:'📷 Upload your photo',shop_reset_theme:'🗑 Reset theme',attach:'📎 Attachments',attach_photo:'Send photo',attach_video:'Send video',users:'👥 Users',bg:'🎨 Chat wallpaper',stickers:'😎 Stickers',logout_confirm:'Logout from account?',logout:'Logout',notif_enable:'🔔 Enable notifications?',notif_on:'ON',err_fill:'❌ Enter nickname and password',err_pass:'❌ Wrong password',err_blocked:'❌ Blocked',toast_hello:'✅ Hi,',toast_copied:'📋',toast_deleted:'🗑',toast_saved:'💾',toast_error:'❌ Error',no_other_users:'No other users yet',you_offline:'⚫ offline',you_online:'🟢 online',call_btn:'📞 Call',call_no_perm:'❌ No microphone access',call_calling:'📞 Calling...',call_incoming:'📞 Incoming call',call_connected:'🔊 Connected',call_ended:'Call ended',call_declined:'❌ Call declined',call_timeout:'⏱ No answer',call_speaker_on:'🔊 Speaker on',call_speaker_off:'🔈 Speaker off'},uk:{welcome_title_0:'DonorGram',welcome_sub_0:'Найшвидший месенджер у світі. Безкоштовний і безпечний.',welcome_title_1:'Швидко',welcome_sub_1:'DonorGram працює швидше за будь-які інші додатки.',welcome_title_2:'Вільно',welcome_sub_2:'DonorGram — вільний месенджер. Жодної реклами.',welcome_title_3:'Потужно',welcome_sub_3:'DonorGram не має обмежень на розмір файлів.',welcome_title_4:'У хмарі',welcome_sub_4:'Доступ до повідомлень з кількох пристроїв.',welcome_start:'Почати спілкування',welcome_choose_lang:'Виберіть мову',login_name:'Нікнейм',login_pass:'Пароль',login_avatar:'Аватар (2 літери)',login_btn:'Увійти / Реєстрація',login_users:'користувачів',chat_search:'🔍 Пошук людей і чатів...',chat_select:'Виберіть чат',chat_type:'Повідомлення...',chat_online:'🟢 онлайн',chat_offline:'⚫ офлайн',chat_notes:'⭐ Обране',chat_no_msgs:'Немає повідомлень',chat_editing:'Редагування',chat_rec_cancel:'Скасувати',chat_rec_send:'➤ Надіслати',chat_clear:'🗑 Очистити історію',chat:'⚙️ Чат',chat_started:'Повідомлень поки немає. Напишіть першим!',action_reply:'Відповісти',action_copy:'Копіювати',action_edit:'Редагувати',action_pin:'Закріпити',action_delete_me:'Видалити у себе',action_delete:'Видалити у всіх',settings:'⚙️ Налаштування',settings_lang:'🌐 Мова',settings_push:'🔔 Push-повідомлення',settings_notif:'🔔 Повідомлення',settings_sound:'🔊 Звук',settings_vibro:'📳 Вібрація',settings_edit_profile:'✏️ Редагувати профіль',profile:'👤 Профіль',profile_name:"Ім'я:",profile_bio:'Статус:',profile_online:'Онлайн:',profile_edit_btn:'✏️ РЕДАГУВАТИ ПРОФІЛЬ',profile_shop_btn:'🛍️ МАГАЗИН',profile_settings_btn:'⚙️ НАЛАШТУВАННЯ',profile_sg_off:'🔄 Вимкнути SpaceGod',profile_sg_on:'✅ Увімкнути SpaceGod',profile_block:'🚫 ЗАБЛОКУВАТИ',profile_unblock:'✅ РОЗБЛОКУВАТИ',profile_no_status:'Немає статусу',profile_my:'👤 Мій профіль',editprofile_title:'✏️ Редагувати профіль',editprofile_avatar:'Аватар (2 літери)',editprofile_name:"Ім'я",editprofile_bio:'Опис (статус)',editprofile_pass:'Новий пароль (пусто = не змінювати)',cancel:'Скасувати',save:'💾 Зберегти',shop:'🛍️ Магазин',shop_all_free:'✨ ВСЕ БЕЗКОШТОВНО',shop_avatars:'👤 Аватарки',shop_bubbles:'💬 Бульбашки',shop_special:'🌟 Особливі',shop_sg:'🌈 SPACEGOD',shop_upload_theme:'📷 Завантажити своє фото',shop_reset_theme:'🗑 Скинути тему',attach:'📎 Вкладення',attach_photo:'Надіслати фото',attach_video:'Надіслати відео',users:'👥 Користувачі',bg:'🎨 Шпалери чату',stickers:'😎 Стікери',logout_confirm:'Вийти з акаунта?',logout:'Вийти',notif_enable:'🔔 Увімкнути повідомлення?',notif_on:'УВІМК',err_fill:'❌ Введіть нік та пароль',err_pass:'❌ Невірний пароль',err_blocked:'❌ Заблоковано',toast_hello:'✅ Привіт,',toast_copied:'📋',toast_deleted:'🗑',toast_saved:'💾',toast_error:'❌ Помилка',no_other_users:'Поки немає інших користувачів',you_offline:'⚫ офлайн',you_online:'🟢 онлайн',call_btn:'📞 Подзвонити',call_no_perm:'❌ Немає доступу до мікрофона',call_calling:'📞 Виклик...',call_incoming:'📞 Вхідний виклик',call_connected:'🔊 Розмова',call_ended:'Виклик завершено',call_declined:'❌ Виклик відхилено',call_timeout:'⏱ Ніхто не відповів',call_speaker_on:'🔊 Динамік увімк',call_speaker_off:'🔈 Динамік вимк'}};
 
 const LANGUAGES=[{code:'ru',flag:'🇷🇺',name:'Русский',native:'Русский'},{code:'en',flag:'🇬🇧',name:'English',native:'English'},{code:'uk',flag:'🇺🇦',name:'Українська',native:'Українська'}];
 let currentLang=localStorage.getItem('dg_lang')||'ru';
@@ -848,6 +862,117 @@ function acceptCalcLink(linkId){db.ref('links/'+linkId).once('value').then(snap=
 function declineCalcLink(linkId){db.ref('links/'+linkId).update({status:'declined',declinedAt:Date.now()}).then(()=>{showToast('❌ Запрос отклонён');renderCalcLinkManager();});}
 function unlinkCalcLink(linkId){if(!confirm('Отвязать калькулятор?'))return;db.ref('links/'+linkId).remove().then(()=>{showToast('🔓 Связка удалена');renderCalcLinkManager();});}
 
+/* ===== ПОИСК ПОЛЬЗОВАТЕЛЕЙ DONORGRAM ===== */
+let _userSearchTimer = null;
+let _allUsersCache = {};
+let _usersCacheLoaded = false;
+
+function loadAllUsersForSearch(){
+  if(_usersCacheLoaded && Object.keys(_allUsersCache).length > 0) return Promise.resolve(_allUsersCache);
+  return db.ref('users').once('value').then(function(snap){
+    _allUsersCache = snap.val() || {};
+    _usersCacheLoaded = true;
+    setTimeout(function(){ _usersCacheLoaded = false; }, 60000);
+    return _allUsersCache;
+  }).catch(function(){ return {}; });
+}
+
+function handleUserSearch(q){
+  if(_userSearchTimer) clearTimeout(_userSearchTimer);
+  const box = document.getElementById('usersSearchResults');
+  const list = document.getElementById('usersSearchList');
+  if(!box || !list) return;
+
+  if(!q || q.length < 1){
+    box.style.display = 'none';
+    list.innerHTML = '';
+    return;
+  }
+
+  box.style.display = 'block';
+  list.innerHTML = '<div class="user-search-empty">⏳ Поиск...</div>';
+
+  _userSearchTimer = setTimeout(function(){
+    loadAllUsersForSearch().then(function(all){
+      const qLower = q.toLowerCase();
+      const results = Object.keys(all)
+        .filter(function(uid){
+          if(uid === currentUser.id) return false;
+          if(isBlocked(uid)) return false;
+          const u = all[uid] || {};
+          const nameMatch = (u.name || '').toLowerCase().indexOf(qLower) >= 0;
+          const idMatch = uid.toLowerCase().indexOf(qLower) >= 0;
+          return nameMatch || idMatch;
+        })
+        .sort(function(a, b){
+          // Онлайн сверху
+          const ao = (all[a].status === 'online') ? 1 : 0;
+          const bo = (all[b].status === 'online') ? 1 : 0;
+          return bo - ao;
+        })
+        .slice(0, 30);
+
+      if(results.length === 0){
+        list.innerHTML = '<div class="user-search-empty">😕 Никого не найдено по "' + esc(q) + '"</div>';
+        return;
+      }
+
+      list.innerHTML = results.map(function(uid){
+        const u = all[uid] || {};
+        state.users[uid] = Object.assign(state.users[uid] || {}, u);
+        const name = u.name || uid;
+        const av = u.avatar || (name[0] ? name[0].toUpperCase() : '?');
+        const avStyle = u.avatarUrl ? "background-image:url('" + u.avatarUrl + "');background-size:cover;background-position:center" : "";
+        const avText = u.avatarUrl ? '' : esc(av);
+        const online = u.status === 'online';
+        const dot = '<div class="online-dot ' + (online ? '' : 'offline') + '" style="bottom:0;right:0;width:12px;height:12px;border-width:2px"></div>';
+        const bio = u.bio ? esc(u.bio).slice(0, 50) : '👤 Пользователь DonorGram';
+        const hasChat = !!(state.userChats[chatIdFor(currentUser.id, uid)]);
+        const btnText = hasChat ? '💬 Открыть' : '✉️ Написать';
+        return '<div class="user-search-item" data-uid="' + esc(uid) + '">' +
+          '<div class="us-av" style="' + avStyle + '">' + avText + dot + '</div>' +
+          '<div class="us-info">' +
+            '<div class="us-name">' + esc(name) + '</div>' +
+            '<div class="us-bio">' + bio + '</div>' +
+          '</div>' +
+          '<button class="us-btn" data-uid="' + esc(uid) + '">' + btnText + '</button>' +
+        '</div>';
+      }).join('');
+
+      list.querySelectorAll('.user-search-item').forEach(function(el){
+        el.addEventListener('click', function(e){
+          const uid = this.dataset.uid;
+          if(!uid) return;
+          if(e.target.closest('.us-btn')){
+            e.stopPropagation();
+          }
+          startChatWithUser(uid);
+        });
+      });
+    }).catch(function(err){
+      list.innerHTML = '<div class="user-search-empty">❌ Ошибка: ' + esc(err.message) + '</div>';
+    });
+  }, 200);
+}
+
+function chatIdFor(a, b){
+  return [a, b].sort().join('_');
+}
+
+function startChatWithUser(uid){
+  if(!uid || uid === currentUser.id) return;
+  if(isBlocked(uid)){ showToast('🚫 Заблокирован'); return; }
+  const u = state.users[uid];
+  if(!u){ showToast('❌ Пользователь не найден'); return; }
+  const chatId = chatIdFor(currentUser.id, uid);
+  // Очищаем поиск
+  const si = document.getElementById('chatSearch');
+  if(si) si.value = '';
+  document.getElementById('usersSearchResults').style.display = 'none';
+  document.getElementById('usersSearchList').innerHTML = '';
+  startChat(uid);
+}
+
 function sendMessage(){
     if(isSendingMessage)return;
     const input=$('messageInput');
@@ -959,7 +1084,7 @@ function openMembersSelect(){
     const list = $('membersSelectList');
     const others = Object.keys(state.users).filter(function(id){ return id !== currentUser.id && !isBlocked(id); });
     if(others.length === 0){
-        list.innerHTML = '<p style="text-align:center;color:#8e98a3;padding:20px">Нет других пользователей</p>';
+        list.innerHTML = '<p style="text-align:center;color:#8e98a3;padding:20px">Нет других пользователей. Поищите людей через поиск!</p>';
     } else {
         list.innerHTML = others.map(function(id){
             const u = state.users[id];
@@ -2113,7 +2238,10 @@ document.getElementById('videoInput').addEventListener('change',function(e){
     }
     e.target.value='';
 });
-document.getElementById('chatSearch').addEventListener('input',function(){debouncedRenderChats();});
+document.getElementById('chatSearch').addEventListener('input',function(){
+    debouncedRenderChats();
+    handleUserSearch(this.value.trim());
+});
 document.getElementById('sidebarThemeFile').addEventListener('change',function(e){if(e.target.files[0]){uploadSidebarTheme(e.target.files[0]);e.target.value='';}});
 document.getElementById('messageInput').addEventListener('input',function(){
     if(!currentUser||!currentChat)return;
