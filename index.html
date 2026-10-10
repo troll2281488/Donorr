@@ -266,7 +266,9 @@ input:checked+.slider:before{transform:translateX(26px)}
 .vk-online{font-size:12px;color:#667eea;font-weight:600;margin-bottom:4px}
 .vk-bio{font-size:13px;color:#555;line-height:1.4;word-break:break-word}
 .vk-stats{display:flex;padding:14px 16px;gap:8px;border-bottom:1px solid #e8edf2}
-.vk-stat{flex:1;text-align:center;padding:6px}
+.vk-stat{flex:1;text-align:center;padding:6px;cursor:pointer;transition:background .15s;border-radius:10px}
+.vk-stat:hover{background:#f0f4ff}
+.vk-stat:active{transform:scale(.96)}
 .vk-stat b{display:block;font-size:18px;color:#1a1a2e;font-weight:700}
 .vk-stat span{font-size:11px;color:#8e98a3}
 .vk-actions{padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap}
@@ -275,7 +277,7 @@ input:checked+.slider:before{transform:translateX(26px)}
 .vk-tabs{display:flex;border-bottom:2px solid #e8edf2;padding:0 16px;gap:4px;overflow-x:auto}
 .vk-tab{padding:12px 16px;font-size:14px;font-weight:600;color:#8e98a3;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
 .vk-tab.active{color:#2688eb;border-bottom-color:#2688eb}
-.vk-wall{padding:12px 16px;max-height:340px;overflow-y:auto}
+.vk-wall{padding:12px 16px;max-height:420px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .vk-post{background:#f9fafc;border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid #eef2f7}
 .vk-post-head{display:flex;gap:10px;align-items:center;margin-bottom:8px}
 .vk-post-av{width:36px;height:36px;border-radius:50%;background:#667eea;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;background-size:cover;background-position:center;flex-shrink:0}
@@ -286,6 +288,31 @@ input:checked+.slider:before{transform:translateX(26px)}
 .vk-post-del{margin-left:auto;background:none;border:none;color:#ff3b30;font-size:14px;cursor:pointer;padding:4px}
 .vk-empty{text-align:center;color:#8e98a3;padding:30px 20px;font-size:13px}
 .wall-lazy{background:rgba(0,0,0,.06);border-radius:12px;padding:24px;text-align:center;cursor:pointer;font-size:13px;color:#667eea;font-weight:600}
+.vk-post-repost{background:#f0f4ff;border-left:3px solid #667eea;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px;cursor:pointer}
+.vk-post-repost .rp-name{font-weight:700;color:#667eea;margin-bottom:2px}
+.vk-post-repost .rp-text{color:#555;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ===== ПИКЕР МЕДИА ИЗ ЧАТОВ ===== */
+.wall-attach-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.wall-attach-btns button{padding:12px 8px;border-radius:12px;border:none;cursor:pointer;font-size:12px;font-weight:700;color:#fff;display:flex;flex-direction:column;align-items:center;gap:4px}
+.wall-attach-btns button i{font-size:20px}
+.wall-picker-tabs{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto}
+.wall-picker-tabs .wp-tab{padding:8px 14px;background:#f0f2f5;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;color:#667eea;border:2px solid transparent}
+.wall-picker-tabs .wp-tab.active{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+.wall-picker-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-height:360px;overflow-y:auto;padding:4px}
+.wall-picker-item{aspect-ratio:1;border-radius:10px;cursor:pointer;background:#e8edf2;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;border:2px solid transparent}
+.wall-picker-item:hover{border-color:#667eea}
+.wall-picker-item img{width:100%;height:100%;object-fit:cover}
+.wall-picker-item .wp-ic{font-size:28px;color:#667eea}
+.wall-picker-item .wp-lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);color:#fff;font-size:10px;text-align:center;padding:2px}
+.wall-picker-empty{text-align:center;color:#8e98a3;padding:20px;font-size:13px;grid-column:1/-1}
+
+/* ===== СПИСОК ДРУЗЕЙ ===== */
+.friends-list-item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;cursor:pointer;transition:background .15s}
+.friends-list-item:hover{background:#f0f4ff}
+.friends-list-item .fl-av{width:44px;height:44px;border-radius:50%;background:#667eea;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;background-size:cover;background-position:center;flex-shrink:0}
+.friends-list-item .fl-name{flex:1;font-weight:600;color:#1a1a2e;font-size:14px}
+.friends-list-item .fl-status{font-size:11px;color:#8e98a3}
 </style>
 </head>
 <body>
@@ -362,6 +389,7 @@ input:checked+.slider:before{transform:translateX(26px)}
 <div style="padding:14px 24px 8px;font-size:13px;color:#8e98a3;font-weight:600;border-bottom:1px solid #e8edf2;margin-bottom:6px">Сообщение</div>
 <button class="msg-act-btn" data-act="reply" style="display:flex;align-items:center;gap:14px;padding:14px 24px;font-size:15px;color:#1a1a2e;cursor:pointer;background:none;border:none;width:100%;text-align:left"><i class="fas fa-reply" style="width:22px;color:#667eea"></i><span>↩️ Ответить</span></button>
 <button class="msg-act-btn" data-act="copy" style="display:flex;align-items:center;gap:14px;padding:14px 24px;font-size:15px;color:#1a1a2e;cursor:pointer;background:none;border:none;width:100%;text-align:left"><i class="fas fa-copy" style="width:22px;color:#667eea"></i><span>📋 Копировать</span></button>
+<button class="msg-act-btn" data-act="repost" style="display:flex;align-items:center;gap:14px;padding:14px 24px;font-size:15px;color:#1a1a2e;cursor:pointer;background:none;border:none;width:100%;text-align:left"><i class="fas fa-retweet" style="width:22px;color:#667eea"></i><span>🔁 Репост в профиль</span></button>
 <button class="msg-act-btn" data-act="edit" style="display:flex;align-items:center;gap:14px;padding:14px 24px;font-size:15px;color:#1a1a2e;cursor:pointer;background:none;border:none;width:100%;text-align:left"><i class="fas fa-pen" style="width:22px;color:#667eea"></i><span>✏️ Редактировать</span></button>
 <button class="msg-act-btn" data-act="pin" style="display:flex;align-items:center;gap:14px;padding:14px 24px;font-size:15px;color:#1a1a2e;cursor:pointer;background:none;border:none;width:100%;text-align:left"><i class="fas fa-thumbtack" style="width:22px;color:#667eea"></i><span>📌 Закрепить</span></button>
 <button class="msg-act-btn danger" data-act="delete" style="display:flex;align-items:center;gap:14px;padding:14px 24px;font-size:15px;color:#ff3b30;cursor:pointer;background:none;border:none;width:100%;text-align:left"><i class="fas fa-trash" style="width:22px"></i><span>🗑 Удалить</span></button>
@@ -379,7 +407,7 @@ input:checked+.slider:before{transform:translateX(26px)}
 <div id="stickerPack" class="sticker-grid"></div>
 </div></div>
 
-<!-- ===== НОВЫЙ ПРОФИЛЬ В СТИЛЕ ВК ===== -->
+<!-- ===== VK-ПРОФИЛЬ ===== -->
 <div class="modal" id="profileModal"><div class="modal-content vk-profile" id="profileModalContent">
 <div class="vk-profile-close"><button type="button" data-close="profileModal">&times;</button></div>
 <div class="vk-cover"></div>
@@ -392,8 +420,8 @@ input:checked+.slider:before{transform:translateX(26px)}
   </div>
 </div>
 <div class="vk-stats">
-  <div class="vk-stat"><b id="vkFriendsCount">0</b><span>друзей</span></div>
-  <div class="vk-stat"><b id="vkSubsCount">0</b><span>подписчиков</span></div>
+  <div class="vk-stat" id="vkFriendsBtn"><b id="vkFriendsCount">0</b><span>друзей</span></div>
+  <div class="vk-stat" id="vkSubsBtn"><b id="vkSubsCount">0</b><span>подписчиков</span></div>
   <div class="vk-stat"><b id="vkPostsCount">0</b><span>записей</span></div>
 </div>
 <div class="vk-actions" id="vkMyActions">
@@ -421,9 +449,10 @@ input:checked+.slider:before{transform:translateX(26px)}
 <div class="modal" id="wallComposerModal"><div class="modal-content">
 <div class="modal-header"><h3>📝 Новая запись</h3><button type="button" data-close="wallComposerModal">&times;</button></div>
 <textarea id="wallComposerText" placeholder="Что у вас нового?" maxlength="500" style="width:100%;min-height:80px;padding:12px;border:1px solid #e8edf2;border-radius:12px;background:#f4f7fc;font-size:14px;outline:none;font-family:inherit;resize:vertical"></textarea>
-<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-  <button type="button" id="wallAttachPhoto" class="login-btn" style="flex:1;min-width:120px;background:linear-gradient(135deg,#667eea,#764ba2);margin-top:0"><i class="fas fa-image"></i> Фото</button>
-  <button type="button" id="wallAttachVoice" class="login-btn" style="flex:1;min-width:120px;background:linear-gradient(135deg,#ff6b9d,#c44569);margin-top:0"><i class="fas fa-microphone"></i> Голосовое</button>
+<div class="wall-attach-btns">
+  <button type="button" id="wallAttachPhoto" style="background:linear-gradient(135deg,#667eea,#764ba2)"><i class="fas fa-image"></i>Галерея</button>
+  <button type="button" id="wallAttachVoice" style="background:linear-gradient(135deg,#ff6b9d,#c44569)"><i class="fas fa-microphone"></i>Записать</button>
+  <button type="button" id="wallAttachFromChat" style="background:linear-gradient(135deg,#34c759,#28a745)"><i class="fas fa-comments"></i>Из чата</button>
 </div>
 <div id="wallComposerPreview" style="margin-top:12px"></div>
 <div style="display:flex;gap:8px;margin-top:12px">
@@ -433,11 +462,28 @@ input:checked+.slider:before{transform:translateX(26px)}
 </div></div>
 <input type="file" id="wallPhotoInput" accept="image/*" style="display:none">
 
+<!-- Пикер медиа из чатов -->
+<div class="modal" id="wallChatPickerModal"><div class="modal-content" style="max-width:520px">
+<div class="modal-header"><h3>📎 Выбрать из чатов</h3><button type="button" data-close="wallChatPickerModal">&times;</button></div>
+<div class="wall-picker-tabs">
+  <div class="wp-tab active" data-pick="photo">📷 Фото</div>
+  <div class="wp-tab" data-pick="video">🎥 Видео</div>
+  <div class="wp-tab" data-pick="audio">🎤 Голосовые</div>
+</div>
+<div class="wall-picker-grid" id="wallPickerGrid"></div>
+</div></div>
+
+<!-- Список друзей -->
+<div class="modal" id="friendsListModal"><div class="modal-content" style="max-width:450px">
+<div class="modal-header"><h3 id="friendsListTitle">👥 Список</h3><button type="button" data-close="friendsListModal">&times;</button></div>
+<div id="friendsListContainer" style="max-height:60vh;overflow-y:auto"></div>
+</div></div>
+
 <div class="modal" id="editProfileModal"><div class="modal-content">
 <div class="modal-header"><h3>✏️ Профиль</h3><button type="button" data-close="editProfileModal">&times;</button></div>
 <div class="edit-avatar-row">
   <div class="edit-avatar-preview" id="editAvatarPreview">U</div>
-  <div style="flex:1"><label>Аватар (2 буквы или пусто)</label><input type="text" id="editAvatarText" maxlength="2" style="text-transform:uppercase"></div>
+  <div style="flex:1"><label>Аватар (2 буквы)</label><input type="text" id="editAvatarText" maxlength="2" style="text-transform:uppercase"></div>
 </div>
 <label>Имя</label><input type="text" id="editName" maxlength="24" placeholder="Ваше имя">
 <label>Статус</label><textarea id="editBio" maxlength="120" style="min-height:70px;resize:vertical" placeholder="О себе..."></textarea>
@@ -540,7 +586,7 @@ function mediaGet(id){return openMediaDB().then(function(d){return new Promise(f
 function mediaPut(id,url){return openMediaDB().then(function(d){return new Promise(function(res){try{var tx=d.transaction(MEDIA_ST,'readwrite');var st=tx.objectStore(MEDIA_ST);st.put({id:id,url:url,ts:Date.now()});tx.oncomplete=function(){res(true);};tx.onerror=function(){res(false);};}catch(e){res(false);}});}).catch(function(){return false;});}
 function compressImage(file,maxDim,quality){return new Promise(function(res){var img=new Image();var url=URL.createObjectURL(file);img.onload=function(){var w=img.width,h=img.height;if(w>maxDim||h>maxDim){if(w>h){h=Math.round(h*maxDim/w);w=maxDim;}else{w=Math.round(w*maxDim/h);h=maxDim;}}var c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);res(c.toDataURL('image/jpeg',quality));};img.onerror=function(){URL.revokeObjectURL(url);res(null);};img.src=url;});}
 
-/* ===== TURN Metered — TURN FIRST ===== */
+/* ===== TURN Metered ===== */
 var ICE_SERVERS={
     iceServers:[
         {urls:'turns:global.relay.metered.ca:443?transport=tcp',username:'ea04614136046595f92339d9',credential:'/f3WYIMo8m6vYy/B'},
@@ -574,6 +620,11 @@ window.currentUser=null;
 let currentWallUid=null;
 let currentWallTab='wall';
 let _wallRef=null;
+let _wallAllPosts=[];
+let _wallLoaded=0;
+const WALL_PAGE=10;
+let _wallPickerType='photo';
+let _repostMessage=null;
 
 const stickers=['😀','😂','🥰','😎','🤔','😭','🔥','❤️','🎉','👍','🍕','🐱','🐶','⭐','💀','👀','🤣','😍','😱','🥳','🚀','🌌','🌈','💫','👑'];
 let selectedSticker=null;
@@ -613,7 +664,6 @@ function applySpaceGodToUI(){const h=$('mainHeader');if(!h)return;['sg-spacegod'
 function updateSpaceGodUI(){const av=$('userAvatarBtn');const un=$('userName');if(!av||!un||!currentUser)return;['spacegod','spacecosmos','spacemint','hacker'].forEach(c=>av.classList.remove(c));if(userInventory.spacegodDisabled){un.innerText=currentUser.name;return;}const t=userInventory.spacegodType;if(t){av.classList.add(t);const cls=t==='spacecosmos'?'rainbow-cosmos':t==='spacemint'?'rainbow-mint':t==='hacker'?'rainbow-hacker':'rainbow-name';un.innerHTML='<span class="crown-icon">👑</span><span class="'+cls+'">'+esc(currentUser.name)+'</span>';}else{un.innerText=currentUser.name;}applySpaceGodToUI();}
 function saveInventory(){if(!currentUser)return;db.ref('inventory/'+currentUser.id).set(userInventory).catch(function(){});}
 
-/* ===== ПОИСК ===== */
 function loadAllUsersForSearch(){if(_usersCacheLoaded&&Object.keys(_allUsersCache).length>0)return Promise.resolve(_allUsersCache);return db.ref('users').once('value').then(function(s){_allUsersCache=s.val()||{};_usersCacheLoaded=true;setTimeout(function(){_usersCacheLoaded=false;},60000);return _allUsersCache;}).catch(function(){return {};});}
 function handleUserSearch(q){if(_userSearchTimer)clearTimeout(_userSearchTimer);const box=$('usersSearchResults');const list=$('usersSearchList');if(!box||!list)return;if(!q||q.length<1){box.style.display='none';list.innerHTML='';return;}box.style.display='block';list.innerHTML='<div class="user-search-empty">⏳ Поиск...</div>';_userSearchTimer=setTimeout(function(){loadAllUsersForSearch().then(function(all){const ql=q.toLowerCase();const res=Object.keys(all).filter(function(uid){if(uid===currentUser.id)return false;if(isBlocked(uid))return false;const u=all[uid]||{};return (u.name||'').toLowerCase().indexOf(ql)>=0||uid.toLowerCase().indexOf(ql)>=0;}).slice(0,30);if(res.length===0){list.innerHTML='<div class="user-search-empty">😕 Никого</div>';return;}list.innerHTML=res.map(function(uid){const u=all[uid]||{};state.users[uid]=Object.assign(state.users[uid]||{},u);const name=u.name||uid;const av=u.avatar||(name[0]?name[0].toUpperCase():'?');const avS=u.avatarUrl?"background-image:url('"+u.avatarUrl+"');background-size:cover;background-position:center":'';const avT=u.avatarUrl?'':esc(av);const dot='<div class="online-dot '+(u.status==='online'?'':'offline')+'" style="bottom:0;right:0;width:12px;height:12px;border-width:2px"></div>';return '<div class="user-search-item" data-uid="'+esc(uid)+'"><div class="us-av" style="'+avS+'">'+avT+dot+'</div><div class="us-info"><div class="us-name">'+esc(name)+'</div><div class="us-bio">'+(u.bio?esc(u.bio).slice(0,50):'👤 Пользователь')+'</div></div><button class="us-btn" data-uid="'+esc(uid)+'">✉️</button></div>';}).join('');list.querySelectorAll('.user-search-item').forEach(function(el){el.addEventListener('click',function(e){const uid=this.dataset.uid;if(!uid)return;if(e.target.closest('.us-btn'))e.stopPropagation();startChatWithUser(uid);});});}).catch(function(){list.innerHTML='<div class="user-search-empty">❌</div>';});},200);}
 function startChatWithUser(uid){if(!uid||uid===currentUser.id)return;if(isBlocked(uid)){showToast('🚫');return;}const si=$('chatSearch');if(si)si.value='';const box=$('usersSearchResults');const list=$('usersSearchList');if(box)box.style.display='none';if(list)list.innerHTML='';startChat(uid);}
@@ -722,7 +772,7 @@ function buildMessageEl(m){
     return div;
 }
 
-/* ===== УНИВЕРСАЛЬНЫЙ ОБРАБОТЧИК PLAY ГОЛОСОВЫХ ===== */
+/* ===== PLAY ГОЛОСОВЫХ ===== */
 document.addEventListener('click',function(e){
     var pb=e.target.closest('.audio-play-btn');
     if(pb){
@@ -821,6 +871,15 @@ document.querySelectorAll('#msgActionSheet .msg-act-btn').forEach(function(btn){
         if(!m){closeMsgActionSheet();return;}
         if(act==='reply'){closeMsgActionSheet();setTimeout(function(){startReply(mid);},80);}
         else if(act==='copy'){try{navigator.clipboard.writeText(m.text||'');showToast('📋');}catch(e){}closeMsgActionSheet();}
+        else if(act==='repost'){
+            // Репост в свой профиль
+            var rp={authorId:currentUser.id,authorName:currentUser.name,timestamp:Date.now(),text:''};
+            if(m.text)rp.text='🔁 '+m.text.slice(0,400);
+            rp.repostFrom={authorId:m.senderId,authorName:m.senderName||m.senderId,chatId:currentChat,text:m.text||'',mediaType:m.mediaType||null,mediaUrl:m.mediaUrl||null};
+            if(m.mediaType){rp.mediaType=m.mediaType;rp.mediaUrl=m.mediaUrl;}
+            db.ref('wall/'+currentUser.id).push(rp).then(function(){showToast('🔁 Репост в профиль');}).catch(function(err){showToast('❌ '+err.message);});
+            closeMsgActionSheet();
+        }
         else if(act==='edit'){editingMessageId=mid;var b=$('editBar');if(b)b.classList.add('show');var i=$('messageInput');if(i){i.value=m.text||'';i.focus();}closeMsgActionSheet();}
         else if(act==='pin'){db.ref('pinned/'+currentChat).set({msgId:mid,text:(m.text||'').slice(0,80),senderName:m.senderName||m.senderId,pinnedBy:currentUser.name,ts:Date.now()});showToast('📌');closeMsgActionSheet();}
         else if(act==='delete'){if(!confirm('Удалить у всех?')){closeMsgActionSheet();return;}if(!hiddenMessages[currentChat])hiddenMessages[currentChat]={};hiddenMessages[currentChat][mid]=true;delete messageCache[currentChat][mid];db.ref('messages/'+currentChat+'/'+mid).remove().catch(function(){});renderMessages(messageCache[currentChat],currentChat);showToast('🗑');closeMsgActionSheet();}
@@ -940,7 +999,7 @@ function startChat(userId){
 function goBack(){currentChat=null;$('mainArea').classList.remove('active');}
 function logout(){if(confirm('Выйти?')){if(currentUser){db.ref('users/'+currentUser.id).update({status:'offline'});}LS.remove('dg_user');location.reload();}}
 
-/* ===== ПРОФИЛЬ ВК ===== */
+/* ===== СТЕНА ===== */
 function countUserFriends(uid){var cnt=0;Object.keys(state.userChats).forEach(function(cid){var c=state.userChats[cid];if(c&&c.type==='private'&&c.participants&&c.participants[uid])cnt++;});return cnt;}
 
 function renderWallTab(tab){
@@ -949,52 +1008,113 @@ function renderWallTab(tab){
     var wall=$('vkWall');if(!wall)return;
     wall.innerHTML='<div class="vk-empty">⏳ Загрузка...</div>';
     if(_wallRef){try{_wallRef.off();}catch(e){}_wallRef=null;}
-    _wallRef=db.ref('wall/'+currentWallUid).orderByChild('timestamp').limitToLast(30);
-    _wallRef.once('value').then(function(snap){
+    db.ref('wall/'+currentWallUid).orderByChild('timestamp').limitToLast(50).once('value').then(function(snap){
         var posts=snap.val()||{};
-        var arr=Object.keys(posts).map(function(id){return Object.assign({id:id},posts[id]);}).sort(function(a,b){return (b.timestamp||0)-(a.timestamp||0);});
-        if(tab==='photos')arr=arr.filter(function(p){return p.mediaType==='photo';});
-        else if(tab==='voices')arr=arr.filter(function(p){return p.mediaType==='audio';});
-        $('vkPostsCount').innerText=Object.keys(posts).length;
-        if(arr.length===0){wall.innerHTML='<div class="vk-empty">'+(tab==='wall'?'📝 Записей пока нет':tab==='photos'?'📷 Фото нет':'🎤 Голосовых нет')+'</div>';return;}
-        wall.innerHTML=arr.map(function(p){
-            var u=state.users[p.authorId]||{name:p.authorName,avatar:'?'};
-            var av=u.avatar||(u.name?u.name[0].toUpperCase():'?');
-            var avS=u.avatarUrl?'background-image:url('+u.avatarUrl+');background-size:cover;background-position:center':'';
-            var avT=u.avatarUrl?'':esc(av);
-            var isMine=p.authorId===currentUser.id;
-            var media='';
-            if(p.mediaType==='photo'&&p.mediaUrl)media='<div class="vk-post-media wall-lazy" data-wallmedia="'+esc(p.id)+'" data-type="photo">📷 Фото — нажмите</div>';
-            else if(p.mediaType==='audio'&&p.mediaUrl)media='<div class="vk-post-media wall-lazy" data-wallmedia="'+esc(p.id)+'" data-type="audio">🎤 Голосовое — нажмите</div>';
-            return '<div class="vk-post" data-post="'+esc(p.id)+'"><div class="vk-post-head"><div class="vk-post-av" style="'+avS+'">'+avT+'</div><div style="flex:1;min-width:0"><div class="vk-post-name">'+esc(u.name||p.authorName||p.authorId)+'</div><div class="vk-post-time">'+formatDate(p.timestamp)+'</div></div>'+(isMine?'<button class="vk-post-del" data-wallpost-del="'+esc(p.id)+'"><i class="fas fa-trash"></i></button>':'')+'</div>'+(p.text?'<div class="vk-post-text">'+esc(p.text)+'</div>':'')+media+'</div>';
-        }).join('');
+        _wallAllPosts=Object.keys(posts).map(function(id){return Object.assign({id:id},posts[id]);}).sort(function(a,b){return (b.timestamp||0)-(a.timestamp||0);});
+        $('vkPostsCount').innerText=_wallAllPosts.length;
+        _wallLoaded=WALL_PAGE;
+        renderWallList();
     }).catch(function(){wall.innerHTML='<div class="vk-empty">❌ Ошибка загрузки</div>';});
 }
-document.addEventListener('click',function(e){
-    var lazy=e.target.closest('[data-wallmedia]');
-    if(lazy&&currentWallUid){
-        var pid=lazy.dataset.wallmedia;
-        var typ=lazy.dataset.type;
-        lazy.innerHTML='<i class="fas fa-spinner fa-spin"></i> Загрузка...';
-        db.ref('wall/'+currentWallUid+'/'+pid).once('value').then(function(snap){
-            var p=snap.val();
-            if(!p||!p.mediaUrl){lazy.innerHTML='❌';return;}
-            if(typ==='photo'){lazy.outerHTML='<img src="'+p.mediaUrl+'" data-img="'+p.mediaUrl+'" style="max-width:100%;border-radius:12px;cursor:pointer;margin-top:8px">';}
-            else if(typ==='audio'){
-                lazy.outerHTML='<div class="audio-msg-wrapper" style="background:#f0f4ff;padding:8px;border-radius:12px;margin-top:8px"><button class="audio-play-btn" type="button" data-audio="'+esc(p.mediaUrl)+'"><i class="fas fa-play"></i></button><div class="audio-waveform"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div><span class="audio-time">0:03</span></div>';
+
+function renderWallList(){
+    var wall=$('vkWall');if(!wall)return;
+    var filtered=_wallAllPosts;
+    if(currentWallTab==='photos')filtered=filtered.filter(function(p){return p.mediaType==='photo'||(p.repostFrom&&p.repostFrom.mediaType==='photo');});
+    else if(currentWallTab==='voices')filtered=filtered.filter(function(p){return p.mediaType==='audio'||p.mediaType==='video'||(p.repostFrom&&(p.repostFrom.mediaType==='audio'||p.repostFrom.mediaType==='video'));});
+    if(filtered.length===0){wall.innerHTML='<div class="vk-empty">'+(currentWallTab==='wall'?'📝 Записей пока нет':currentWallTab==='photos'?'📷 Фото нет':'🎤 Медиа нет')+'</div>';return;}
+    var shown=filtered.slice(0,_wallLoaded);
+    var html=shown.map(function(p){return buildWallPostHtml(p);}).join('');
+    if(_wallLoaded<filtered.length){
+        html+='<div id="wallLoadMore" style="text-align:center;padding:14px;color:#2688eb;font-weight:700;cursor:pointer;font-size:14px;background:#f0f4ff;border-radius:10px;margin-top:8px">⬇️ Показать ещё ('+(filtered.length-_wallLoaded)+')</div>';
+    }
+    wall.innerHTML=html;
+}
+
+function buildWallPostHtml(p){
+    var u=state.users[p.authorId]||{name:p.authorName,avatar:'?'};
+    var av=u.avatar||(u.name?u.name[0].toUpperCase():'?');
+    var avS=u.avatarUrl?'background-image:url('+u.avatarUrl+');background-size:cover;background-position:center':'';
+    var avT=u.avatarUrl?'':esc(av);
+    var isMine=p.authorId===currentUser.id;
+    var media='';
+    if(p.mediaType==='photo'&&p.mediaUrl)media='<div class="vk-post-media wall-lazy" data-wallpost-media="'+esc(p.id)+'">📷 Фото — нажмите</div>';
+    else if(p.mediaType==='video'&&p.mediaUrl)media='<div class="vk-post-media wall-lazy" data-wallpost-media="'+esc(p.id)+'">🎥 Видео — нажмите</div>';
+    else if(p.mediaType==='audio'&&p.mediaUrl)media='<div class="vk-post-media wall-lazy" data-wallpost-media="'+esc(p.id)+'">🎤 Голосовое — нажмите</div>';
+    var repost='';
+    if(p.repostFrom){
+        var ru=state.users[p.repostFrom.authorId]||{name:p.repostFrom.authorName};
+        var rmt='';
+        if(p.repostFrom.mediaType)rmt=' <i class="fas fa-paperclip"></i>';
+        repost='<div class="vk-post-repost"><div class="rp-name">🔁 '+esc(ru.name||p.repostFrom.authorName||'?')+'</div><div class="rp-text">'+esc(p.repostFrom.text||(p.repostFrom.mediaType==='photo'?'📷 Фото':p.repostFrom.mediaType==='video'?'🎥 Видео':p.repostFrom.mediaType==='audio'?'🎤 Голосовое':''))+rmt+'</div></div>';
+    }
+    return '<div class="vk-post" data-post="'+esc(p.id)+'"><div class="vk-post-head"><div class="vk-post-av" style="'+avS+'">'+avT+'</div><div style="flex:1;min-width:0"><div class="vk-post-name">'+esc(u.name||p.authorName||p.authorId)+'</div><div class="vk-post-time">'+formatDate(p.timestamp)+'</div></div>'+(isMine?'<button class="vk-post-del" data-wallpost-del="'+esc(p.id)+'"><i class="fas fa-trash"></i></button>':'')+'</div>'+repost+(p.text?'<div class="vk-post-text">'+esc(p.text)+'</div>':'')+media+'</div>';
+}
+
+/* ===== ПИКЕР МЕДИА ИЗ ЧАТОВ ===== */
+function openWallChatPicker(type){
+    _wallPickerType=type||'photo';
+    document.querySelectorAll('#wallChatPickerModal .wp-tab').forEach(function(t){t.classList.toggle('active',t.dataset.pick===_wallPickerType);});
+    var grid=$('wallPickerGrid');if(!grid)return;
+    grid.innerHTML='<div class="wall-picker-empty">⏳ Загрузка...</div>';
+    openModal('wallChatPickerModal');
+    var chats=Object.keys(state.userChats);
+    if(chats.length===0){grid.innerHTML='<div class="wall-picker-empty">😕 Чатов нет</div>';return;}
+    var allItems=[];var loaded=0;
+    chats.forEach(function(cid){
+        db.ref('messages/'+cid).orderByChild('timestamp').limitToLast(50).once('value').then(function(snap){
+            var msgs=snap.val()||{};
+            Object.keys(msgs).forEach(function(mid){
+                var m=msgs[mid];if(!m||!m.mediaType||!m.mediaUrl)return;
+                if(_wallPickerType==='photo'&&m.mediaType!=='photo')return;
+                if(_wallPickerType==='video'&&m.mediaType!=='video')return;
+                if(_wallPickerType==='audio'&&m.mediaType!=='audio')return;
+                allItems.push({chatId:cid,msgId:mid,msg:m});
+            });
+            loaded++;
+            if(loaded===chats.length){
+                allItems.sort(function(a,b){return (b.msg.timestamp||0)-(a.msg.timestamp||0);});
+                if(allItems.length===0){grid.innerHTML='<div class="wall-picker-empty">😕 Ничего не найдено</div>';return;}
+                grid.innerHTML=allItems.slice(0,60).map(function(it){
+                    var preview='';
+                    if(it.msg.mediaType==='photo')preview='<img src="'+it.msg.mediaUrl+'" loading="lazy">';
+                    else if(it.msg.mediaType==='video')preview='<div class="wp-ic"><i class="fas fa-video"></i></div>';
+                    else preview='<div class="wp-ic"><i class="fas fa-microphone"></i></div>';
+                    var lbl=formatDate(it.msg.timestamp).split(' ')[0];
+                    return '<div class="wall-picker-item" data-pick-chat="'+esc(it.chatId)+'" data-pick-msg="'+esc(it.msgId)+'">'+preview+'<div class="wp-lbl">'+lbl+'</div></div>';
+                }).join('');
             }
+        }).catch(function(){
+            loaded++;
+            if(loaded===chats.length&&allItems.length===0){grid.innerHTML='<div class="wall-picker-empty">❌ Ошибка</div>';}
         });
-        return;
-    }
-    var del=e.target.closest('[data-wallpost-del]');
-    if(del){
-        e.preventDefault();
-        var id=del.dataset.wallpostDel;
-        if(!confirm('Удалить запись?'))return;
-        db.ref('wall/'+currentUser.id+'/'+id).remove().then(function(){showToast('🗑');renderWallTab(currentWallTab);});
-        return;
-    }
-});
+    });
+}
+
+/* ===== СПИСОК ДРУЗЕЙ ===== */
+function openFriendsList(uid,mode){
+    var list=$('friendsListContainer');if(!list)return;
+    $('friendsListTitle').innerText=mode==='friends'?'👥 Друзья':'👤 Подписчики';
+    list.innerHTML='<div class="wall-picker-empty">⏳ Загрузка...</div>';
+    openModal('friendsListModal');
+    var ids=[];
+    Object.keys(state.userChats).forEach(function(cid){
+        var c=state.userChats[cid];
+        if(c&&c.type==='private'&&c.participants&&c.participants[uid]){
+            var other=Object.keys(c.participants).find(function(id){return id!==uid;});
+            if(other&&ids.indexOf(other)<0)ids.push(other);
+        }
+    });
+    if(ids.length===0){list.innerHTML='<div class="wall-picker-empty">😕 Пусто</div>';return;}
+    list.innerHTML=ids.map(function(id){
+        var u=state.users[id]||{name:id};
+        var av=u.avatar||(u.name?u.name[0].toUpperCase():'?');
+        var avS=u.avatarUrl?'background-image:url('+u.avatarUrl+');background-size:cover;background-position:center':'';
+        var avT=u.avatarUrl?'':esc(av);
+        var os=getOnlineStatus(id);
+        return '<div class="friends-list-item" data-fl-uid="'+esc(id)+'"><div class="fl-av" style="'+avS+'">'+avT+'</div><div style="flex:1;min-width:0"><div class="fl-name">'+esc(u.name||id)+'</div><div class="fl-status">'+os.text+'</div></div><i class="fas fa-chevron-right" style="color:#c8c8c8"></i></div>';
+    }).join('');
+}
 
 function showProfile(uid){
     var u=state.users[uid];
@@ -1081,25 +1201,34 @@ function openWallComposer(){
     openModal('wallComposerModal');
 }
 function wallAttachPhoto(){ $('wallPhotoInput').click(); }
+let _wallRecorder=null,_wallRecChunks=[],_wallRecStream=null;
 function wallAttachVoice(){
+    if(_wallRecorder){
+        try{_wallRecorder.stop();}catch(e){}
+        return;
+    }
     if(!navigator.mediaDevices){showToast('❌');return;}
     navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-        var chunks=[];
-        var rec=new MediaRecorder(stream);
-        rec.ondataavailable=function(e){if(e.data&&e.data.size>0)chunks.push(e.data);};
-        rec.onstop=function(){
-            try{stream.getTracks().forEach(function(t){t.stop();});}catch(e){}
-            var blob=new Blob(chunks,{type:rec.mimeType||'audio/webm'});
+        _wallRecStream=stream;_wallRecChunks=[];
+        var opt={};
+        if(MediaRecorder.isTypeSupported('audio/webm;codecs=opus'))opt={mimeType:'audio/webm;codecs=opus'};
+        try{_wallRecorder=new MediaRecorder(stream,opt);}catch(e){showToast('❌');return;}
+        _wallRecorder.ondataavailable=function(e){if(e.data&&e.data.size>0)_wallRecChunks.push(e.data);};
+        _wallRecorder.onstop=function(){
+            try{_wallRecStream.getTracks().forEach(function(t){t.stop();});}catch(e){}
+            var blob=new Blob(_wallRecChunks,{type:_wallRecorder.mimeType||'audio/webm'});
+            _wallRecorder=null;_wallRecChunks=[];_wallRecStream=null;
             if(blob.size<500){showToast('❌ Слишком коротко');return;}
             blobToBase64(blob).then(function(b64){
                 _wallPending.mediaType='audio';
                 _wallPending.mediaUrl=b64;
                 $('wallComposerPreview').innerHTML='<div class="audio-msg-wrapper" style="background:#f0f4ff;padding:8px;border-radius:12px"><button class="audio-play-btn" type="button" data-audio="'+esc(b64)+'"><i class="fas fa-play"></i></button><div class="audio-waveform"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div><span class="audio-time">🎤</span></div>';
+                showToast('✅ Готово');
             });
         };
-        rec.start();
-        showToast('🎤 Говорите...');
-        setTimeout(function(){if(rec.state==='recording')rec.stop();},5000);
+        _wallRecorder.start();
+        showToast('🎤 Говорите... (нажмите ещё раз для стопа)');
+        setTimeout(function(){if(_wallRecorder&&_wallRecorder.state==='recording')_wallRecorder.stop();},30000);
     }).catch(function(){showToast('❌ Нет микрофона');});
 }
 document.getElementById('wallPhotoInput') && document.getElementById('wallPhotoInput').addEventListener('change',function(e){
@@ -1185,9 +1314,58 @@ document.addEventListener('click',function(e){
     if(closest('#vkPublishBtn')){e.preventDefault();openWallComposer();return;}
     if(closest('#wallAttachPhoto')){e.preventDefault();wallAttachPhoto();return;}
     if(closest('#wallAttachVoice')){e.preventDefault();wallAttachVoice();return;}
+    if(closest('#wallAttachFromChat')){e.preventDefault();openWallChatPicker('photo');return;}
     if(closest('#wallPostBtn')){e.preventDefault();publishWallPost();return;}
     if(closest('#vkWriteBtn')){e.preventDefault();var uid=currentProfileUid;closeModal('profileModal');if(uid)startChat(uid);return;}
     if(closest('#vkCallBtn')){e.preventDefault();var uid2=currentProfileUid;closeModal('profileModal');if(uid2&&window.dgCalls){var uu=state.users[uid2]||{};window.dgCalls.startCall(uid2,uu.name||uid2,uu.avatarUrl||null);}return;}
+    if(closest('#vkFriendsBtn')){e.preventDefault();if(currentWallUid)openFriendsList(currentWallUid,'friends');return;}
+    if(closest('#vkSubsBtn')){e.preventDefault();if(currentWallUid)openFriendsList(currentWallUid,'subs');return;}
+    var fli=closest('.friends-list-item');
+    if(fli&&fli.dataset.flUid){e.preventDefault();var fuid=fli.dataset.flUid;closeModal('friendsListModal');setTimeout(function(){showProfile(fuid);},80);return;}
+    var wpTab=closest('.wp-tab');
+    if(wpTab&&wpTab.dataset.pick){e.preventDefault();_wallPickerType=wpTab.dataset.pick;openWallChatPicker(_wallPickerType);return;}
+    var wpItem=closest('.wall-picker-item');
+    if(wpItem&&wpItem.dataset.pickChat&&wpItem.dataset.pickMsg){
+        e.preventDefault();
+        var pcid=wpItem.dataset.pickChat,pmid=wpItem.dataset.pickMsg;
+        db.ref('messages/'+pcid+'/'+pmid).once('value').then(function(s){
+            var m=s.val();
+            if(!m||!m.mediaUrl){showToast('❌');return;}
+            _wallPending.mediaType=m.mediaType;
+            _wallPending.mediaUrl=m.mediaUrl;
+            closeModal('wallChatPickerModal');
+            var prev='';
+            if(m.mediaType==='photo')prev='<img src="'+m.mediaUrl+'" style="max-width:100%;max-height:200px;border-radius:12px">';
+            else if(m.mediaType==='video')prev='<div style="background:#000;border-radius:12px;padding:20px;color:#fff;text-align:center"><i class="fas fa-video" style="font-size:32px"></i><div style="margin-top:8px">Видео</div></div>';
+            else prev='<div class="audio-msg-wrapper" style="background:#f0f4ff;padding:8px;border-radius:12px"><button class="audio-play-btn" type="button" data-audio="'+esc(m.mediaUrl)+'"><i class="fas fa-play"></i></button><div class="audio-waveform"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div><span class="audio-time">🎤</span></div>';
+            $('wallComposerPreview').innerHTML=prev;
+            openModal('wallComposerModal');
+        });
+        return;
+    }
+    var wp = closest('[data-wallpost-media]');
+    if(wp){
+        e.preventDefault();
+        var pid=wp.dataset.wallpostMedia;
+        wp.innerHTML='<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+        db.ref('wall/'+currentWallUid+'/'+pid).once('value').then(function(snap){
+            var p=snap.val();if(!p||!p.mediaUrl){wp.innerHTML='❌';return;}
+            if(p.mediaType==='photo')wp.outerHTML='<img src="'+p.mediaUrl+'" data-img="'+p.mediaUrl+'" style="max-width:100%;border-radius:12px;cursor:pointer;margin-top:8px">';
+            else if(p.mediaType==='video')wp.outerHTML='<video src="'+p.mediaUrl+'" controls preload="metadata" style="max-width:100%;border-radius:12px;margin-top:8px"></video>';
+            else if(p.mediaType==='audio')wp.outerHTML='<div class="audio-msg-wrapper" style="background:#f0f4ff;padding:8px;border-radius:12px;margin-top:8px"><button class="audio-play-btn" type="button" data-audio="'+esc(p.mediaUrl)+'"><i class="fas fa-play"></i></button><div class="audio-waveform"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div><span class="audio-time">🎤</span></div>';
+        });
+        return;
+    }
+    var wdel = closest('[data-wallpost-del]');
+    if(wdel){
+        e.preventDefault();
+        var wid=wdel.dataset.wallpostDel;
+        if(!confirm('Удалить запись?'))return;
+        db.ref('wall/'+currentUser.id+'/'+wid).remove().then(function(){showToast('🗑');renderWallTab(currentWallTab);});
+        return;
+    }
+    var lm = closest('#wallLoadMore');
+    if(lm){e.preventDefault();_wallLoaded+=WALL_PAGE;renderWallList();return;}
     var vktab=closest('.vk-tab');
     if(vktab){e.preventDefault();renderWallTab(vktab.dataset.vktab);return;}
     var shopTab=closest('.shop-tab');
@@ -1290,7 +1468,7 @@ function uploadSidebarTheme(file){if(!userInventory.spacegod)return;compressImag
 function resetSidebarTheme(){userInventory.sidebarTheme='none';saveInventory();applySidebarTheme();renderThemes();showToast('💾');}
 
 /* ═══════════════════════════════════════════════════════════════════
-   WEBRTC CALLS v11 — TURN FIRST + ICE RESTART
+   WEBRTC CALLS v11
    ═══════════════════════════════════════════════════════════════════ */
 (function(){
     'use strict';
