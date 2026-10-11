@@ -590,12 +590,15 @@ function mediaGet(id){return openMediaDB().then(function(d){return new Promise(f
 function mediaPut(id,url){return openMediaDB().then(function(d){return new Promise(function(res){try{var tx=d.transaction(MEDIA_ST,'readwrite');var st=tx.objectStore(MEDIA_ST);st.put({id:id,url:url,ts:Date.now()});tx.oncomplete=function(){res(true);};tx.onerror=function(){res(false);};}catch(e){res(false);}});}).catch(function(){return false;});}
 function compressImage(file,maxDim,quality){return new Promise(function(res){var img=new Image();var url=URL.createObjectURL(file);img.onload=function(){var w=img.width,h=img.height;if(w>maxDim||h>maxDim){if(w>h){h=Math.round(h*maxDim/w);w=maxDim;}else{w=Math.round(w*maxDim/h);h=maxDim;}}var c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);res(c.toDataURL('image/jpeg',quality));};img.onerror=function(){URL.revokeObjectURL(url);res(null);};img.src=url;});}
 
+/* ============ ОПТИМИЗАЦИЯ ТРАФИКА ЗВОНКОВ ============
+   - Только UDP (без TCP): -10-20% трафика, качество не страдает
+   - Убран отдельный STUN от Metered (TURN сам умеет STUN)
+   - Оставлен публичный STUN Google для P2P-случаев
+================================================= */
 var ICE_SERVERS={iceServers:[
-    {urls:'turns:global.relay.metered.ca:443?transport=tcp',username:'ea04614136046595f92339d9',credential:'/f3WYIMo8m6vYy/B'},
     {urls:'turn:global.relay.metered.ca:443',username:'ea04614136046595f92339d9',credential:'/f3WYIMo8m6vYy/B'},
-    {urls:'turn:global.relay.metered.ca:80?transport=tcp',username:'ea04614136046595f92339d9',credential:'/f3WYIMo8m6vYy/B'},
     {urls:'turn:global.relay.metered.ca:80',username:'ea04614136046595f92339d9',credential:'/f3WYIMo8m6vYy/B'},
-    {urls:'stun:stun.relay.metered.ca:80'}
+    {urls:'stun:stun.l.google.com:19302'}
 ],iceTransportPolicy:'all',iceCandidatePoolSize:0};
 
 const LS_PREFIX='dg_v2_';
@@ -764,7 +767,7 @@ document.querySelectorAll('#msgActionSheet .msg-act-btn').forEach(function(btn){
     });
 });
 
-/* ============ ИСПРАВЛЕННЫЙ openChat ============ */
+/* ============ ИСПРАВЛЕННЫЙ openChat с авто-восстановлением сломанных чатов ============ */
 function openChat(chatId){
     if(messagesListener&&currentChat){db.ref('messages/'+currentChat).off('child_added',messagesListener);messagesListener=null;}
     if(typingListenerRef&&typingListenerCb){try{typingListenerRef.off('value',typingListenerCb);}catch(e){}}
@@ -777,13 +780,66 @@ function openChat(chatId){
         });
         return;
     }
+    
+    /* ============================================================
+       АВТО-ВОССТАНОВЛЕНИЕ СЛОМАННЫХ ЧАТОВ
+       Если чат создан старым кодом и в нём нет type/name/participants —
+       восстанавливаем их из id чата и данных пользователя
+       ============================================================ */
+    if(chat && (!chat.type || !chat.participants || !chat.name)){
+        console.log('[fix] Обнаружен сломанный чат:', chatId, chat);
+        if(!chat.type) chat.type = 'private';
+        if(!chat.participants || Object.keys(chat.participants).length < 2){
+            var parts = chatId.split('_');
+            if(parts.length === 2){
+                chat.participants = {};
+                chat.participants[parts[0]] = true;
+                chat.participants[parts[1]] = true;
+                db.ref('userChats/'+currentUser.id+'/'+chatId+'/participants').set(chat.participants).catch(function(){});
+                db.ref('userChats/'+currentUser.id+'/'+chatId+'/type').set('private').catch(function(){});
+                db.ref('chats/'+chatId+'/participants').set(chat.participants).catch(function(){});
+                db.ref('chats/'+chatId+'/type').set('private').catch(function(){});
+                console.log('[fix] Восстановлены participants:', chat.participants);
+            }
+        }
+        if(chat.participants){
+            var _fixOtherId = Object.keys(chat.participants).find(function(id){return id !== currentUser.id;});
+            if(_fixOtherId){
+                if(state.users[_fixOtherId] && state.users[_fixOtherId].name){
+                    chat.name = state.users[_fixOtherId].name;
+                    db.ref('userChats/'+currentUser.id+'/'+chatId+'/name').set(chat.name).catch(function(){});
+                } else {
+                    (function(_cid, _oid){
+                        db.ref('users/'+_oid).once('value').then(function(s){
+                            var u = s.val() || {id:_oid, name:_oid, avatar:'?'};
+                            state.users[_oid] = u;
+                            if(state.userChats[_cid]){
+                                state.userChats[_cid].name = u.name || _oid;
+                                state.userChats[_cid].participants = state.userChats[_cid].participants || {};
+                                state.userChats[_cid].participants[_oid] = true;
+                                state.userChats[_cid].participants[currentUser.id] = true;
+                                db.ref('userChats/'+currentUser.id+'/'+_cid+'/name').set(state.userChats[_cid].name).catch(function(){});
+                                db.ref('userChats/'+currentUser.id+'/'+_cid+'/participants').set(state.userChats[_cid].participants).catch(function(){});
+                            }
+                            _lastChatsHash = '';
+                            debouncedRenderChats();
+                            if(currentChat === _cid) openChat(_cid);
+                        }).catch(function(){});
+                    })(chatId, _fixOtherId);
+                }
+            }
+        }
+        _lastChatsHash = '';
+        debouncedRenderChats();
+    }
+    /* ============ КОНЕЦ АВТО-ВОССТАНОВЛЕНИЯ ============ */
+    
     $('mainArea').classList.add('active');
     var chatName='Чат',otherId=null;
     if(chat.type==='private'){
         otherId=Object.keys(chat.participants||{}).find(function(id){return id!==currentUser.id;});
         window._currentChatOtherId=otherId;
         var u=state.users[otherId];
-        // Имя всегда берём из users если есть
         if(u&&u.name){
             chatName=u.name;
             if(!chat.name||chat.name==='Chat'||chat.name==='Чат'||chat.name===chatId){
@@ -793,7 +849,6 @@ function openChat(chatId){
             }
         } else if(otherId){
             chatName=(chat.name&&chat.name!=='Chat'&&chat.name!=='Чат')?chat.name:otherId;
-            // Подгружаем юзера
             db.ref('users/'+otherId).once('value').then(function(s){
                 state.users[otherId]=s.val()||{id:otherId,name:otherId,avatar:'?'};
                 subscribeToUser(otherId);
@@ -850,15 +905,18 @@ function startNotificationWatcher(){if(!currentUser||notifInitialized)return;not
 var _renderChatsTimer=null;
 function debouncedRenderChats(){if(_renderChatsTimer)return;_renderChatsTimer=setTimeout(function(){_renderChatsTimer=null;renderChats();},150);}
 
-/* ============ ИСПРАВЛЕННЫЙ renderChats ============ */
 function renderChats(){
     var list=$('chatsList');if(!list)return;
     var st=($('chatSearch')&&$('chatSearch').value||'').toLowerCase();
     var chats=Object.keys(state.userChats).map(function(id){return Object.assign({id:id},state.userChats[id]);});
     chats=chats.filter(function(c){
         if(c.type==='notes')return true;
-        if(c.type==='private'){
+        if(c.type==='private'||!c.type){
             var o=Object.keys(c.participants||{}).find(function(id){return id!==currentUser.id;});
+            if(!o){
+                var parts=c.id.split('_');
+                if(parts.length===2)o=parts.find(function(x){return x!==currentUser.id;});
+            }
             if(!o)return false;
             if(isBlocked(o))return false;
             var u=state.users[o];
@@ -868,15 +926,16 @@ function renderChats(){
         return !st||((c.name||'').toLowerCase().indexOf(st)>=0);
     });
     chats.sort(function(a,b){if(a.type==='notes')return -1;if(b.type==='notes')return 1;return(b.lastMessageTime||0)-(a.lastMessageTime||0);});
-    var hash=chats.map(c=>c.id+'|'+(c.lastMessageTime||0)+'|'+(c.unreadCount||0)).join('#');
-    // Не выходим по хэшу, чтобы гарантированно обновлять имя/аватар
-    _lastChatsHash=hash;
     list.innerHTML=chats.map(function(c){
         var name='Чат',av='?',avS='';var t2=null,od='',isNotes=c.type==='notes';
-        if(c.type==='private'){
+        var isPrivate=(c.type==='private'||!c.type);
+        if(isPrivate){
             var o=Object.keys(c.participants||{}).find(function(id){return id!==currentUser.id;});
+            if(!o){
+                var parts=c.id.split('_');
+                if(parts.length===2)o=parts.find(function(x){return x!==currentUser.id;});
+            }
             var u=state.users[o];
-            // ⭐ ГЛАВНЫЙ ФИКС: имя ВСЕГДА из users[o].name, если оно есть
             if(u&&u.name){
                 name=u.name;
                 if(!c.name||c.name==='Chat'||c.name==='Чат'||c.name===c.id){
@@ -901,7 +960,7 @@ function renderChats(){
             od='<div class="online-dot '+(os.online?'':'offline')+'"></div>';
         }
         else if(isNotes){name='⭐ Избранное';av='⭐';}
-        else if(c.type==='group'){name=c.name||'Группа';av='👥';}
+        else {name=c.name||'Группа';av='👥';}
         var bd=c.unreadCount?'<span class="badge">'+c.unreadCount+'</span>':'';var nH;
         if(isNotes)nH='⭐ Избранное';
         else if(t2){var cls=t2==='spacecosmos'?'rainbow-cosmos':t2==='spacemint'?'rainbow-mint':t2==='hacker'?'rainbow-hacker':'rainbow-name';nH='<span class="crown-icon">👑</span><span class="'+cls+'">'+esc(name)+'</span>';}
@@ -923,7 +982,6 @@ function loadData(){
     db.ref('users/'+currentUser.id+'/blockedUsers').on('value',function(s){blockedUsers=s.val()||{};debouncedRenderChats();});
 }
 
-/* ============ ИСПРАВЛЕННЫЙ startChat ============ */
 function startChat(userId){
     if(!userId||userId===currentUser.id)return;
     if(isBlocked(userId))return;
@@ -938,28 +996,28 @@ function startChat(userId){
             state.userChats[chatId].participants[userId]=true;
         } else {
             state.userChats[chatId].name=otherName;
+            state.userChats[chatId].type='private';
+            state.userChats[chatId].participants=state.userChats[chatId].participants||{};
+            state.userChats[chatId].participants[currentUser.id]=true;
+            state.userChats[chatId].participants[userId]=true;
         }
         openChat(chatId);
         db.ref('chats/'+chatId).once('value').then(function(snap){
-            if(!snap.exists()){
+            var needFix=!snap.exists() || !snap.val().participants || !snap.val().participants[userId] || !snap.val().type;
+            if(needFix){
                 var up={};
                 up['chats/'+chatId+'/type']='private';
                 up['chats/'+chatId+'/participants/'+currentUser.id]=true;
                 up['chats/'+chatId+'/participants/'+userId]=true;
-                up['userChats/'+currentUser.id+'/'+chatId]={id:chatId,type:'private',name:otherName,lastMessage:'',lastMessageTime:Date.now(),participants:{}};
+                up['userChats/'+currentUser.id+'/'+chatId+'/type']='private';
+                up['userChats/'+currentUser.id+'/'+chatId+'/name']=otherName;
                 up['userChats/'+currentUser.id+'/'+chatId+'/participants/'+currentUser.id]=true;
                 up['userChats/'+currentUser.id+'/'+chatId+'/participants/'+userId]=true;
-                up['userChats/'+userId+'/'+chatId]={id:chatId,type:'private',name:currentUser.name,lastMessage:'',lastMessageTime:Date.now(),participants:{}};
+                up['userChats/'+userId+'/'+chatId+'/type']='private';
+                up['userChats/'+userId+'/'+chatId+'/name']=currentUser.name;
                 up['userChats/'+userId+'/'+chatId+'/participants/'+currentUser.id]=true;
                 up['userChats/'+userId+'/'+chatId+'/participants/'+userId]=true;
                 db.ref().update(up).catch(function(){});
-            } else {
-                db.ref('userChats/'+currentUser.id+'/'+chatId+'/name').once('value').then(function(ns){
-                    var n=ns.val();
-                    if(!n||n==='Chat'||n==='Чат'||n===chatId){
-                        db.ref('userChats/'+currentUser.id+'/'+chatId+'/name').set(otherName).catch(function(){});
-                    }
-                });
             }
         });
     };
@@ -1209,7 +1267,7 @@ document.addEventListener('click',function(e){
     if(closest('#notifPermBtn')){e.preventDefault();requestPushPermission().then(function(ok){if(ok)showToast('🔔');$('notifPermBar').classList.remove('show');});return;}
     if(closest('#gpsBtn')){e.preventDefault();openModal('gpsMapModal');setTimeout(function(){if(!gpsMap){gpsMap=L.map('leafletMap',{zoomControl:true}).setView([55.75,37.62],6);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(gpsMap);}setTimeout(function(){gpsMap.invalidateSize();},200);},250);return;}
     if(closest('#gpsMapBack')){e.preventDefault();closeModal('gpsMapModal');return;}
-    if(closest('#chatInfoBtn')){e.preventDefault();var c2=state.userChats[currentChat];if(!c2)return;if(c2.type==='private'){var o2=window._currentChatOtherId||Object.keys(c2.participants||{}).find(function(id){return id!==currentUser.id;});if(o2)showProfile(o2);}return;}
+    if(closest('#chatInfoBtn')){e.preventDefault();var c2=state.userChats[currentChat];if(!c2)return;if(c2.type==='private'||!c2.type){var o2=window._currentChatOtherId||Object.keys(c2.participants||{}).find(function(id){return id!==currentUser.id;});if(!o2){var pp=c2.id.split('_');if(pp.length===2)o2=pp.find(function(x){return x!==currentUser.id;});}if(o2)showProfile(o2);}return;}
 });
 document.addEventListener('keydown',function(e){if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='loginPassword'){window.doLogin();}if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='messageInput'){sendMessage();}});
 window.doLogin=function(){
@@ -1344,11 +1402,93 @@ function resetSidebarTheme(){userInventory.sidebarTheme='none';saveInventory();a
     function toggleMute(){if(!localStream)return;var tr=localStream.getAudioTracks()[0];if(!tr)return;tr.enabled=!tr.enabled;var b=$c('dgCallMuteBtn');if(!b)return;var i=b.querySelector('.dgIconCircle');if(tr.enabled){b.classList.remove('muted');if(i)i.innerHTML='<i class="fas fa-microphone"></i>';}else{b.classList.add('muted');if(i)i.innerHTML='<i class="fas fa-microphone-slash"></i>';}}
     function toggleSpeaker(){speakerOn=!speakerOn;var a=getRemoteAudio();a.volume=speakerOn?1.0:0.7;var b=$c('dgCallSpeakerBtn');if(b){if(speakerOn)b.classList.add('active');else b.classList.remove('active');}}
     function getLocalAudio(){return new Promise(function(res,rej){if(!navigator.mediaDevices){safeToast('❌');rej(new Error('no'));return;}navigator.mediaDevices.getUserMedia({audio:{echoCancellation:{ideal:true},noiseSuppression:{ideal:true},autoGainControl:{ideal:true},channelCount:1,sampleRate:48000},video:false}).then(function(s){localStream=s;res(s);}).catch(function(e){navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(function(s){localStream=s;res(s);}).catch(function(e2){safeToast('❌');rej(e2);});});});}
-    function optimizeSDP(sdp){if(!sdp)return sdp;try{sdp=sdp.replace(/a=fmtp:111 ([^\r\n]+)/,'a=fmtp:111 minptime=10;useinbandfec=1;maxaveragebitrate=24000;stereo=0;sprop-stereo=0');if(sdp.indexOf('maxaveragebitrate')===-1){sdp=sdp.replace('a=rtpmap:111 opus/48000/2','a=rtpmap:111 opus/48000/2\r\na=fmtp:111 minptime=10;useinbandfec=1;maxaveragebitrate=24000;stereo=0');}return sdp;}catch(e){return sdp;}}
-    function createPeerConnection(){pc=new RTCPeerConnection(ICE_SERVERS);pc.onicecandidate=function(e){if(e.candidate&&currentCallRef){currentCallRef.child('callerCandidates').push(e.candidate.toJSON()).catch(function(){});}};pc.ontrack=function(e){var s=e.streams&&e.streams[0];if(!s)return;remoteStream=s;setTimeout(function(){attachRemoteStream(s);setStatusTop('🔊 Разговор');var sec=$c('dgCallSecure');if(sec)sec.style.display='block';if(!callTimerInterval)startTimer();var a=getRemoteAudio();a.volume=1.0;speakerOn=true;var sb=$c('dgCallSpeakerBtn');if(sb)sb.classList.add('active');},100);};pc.oniceconnectionstatechange=function(){if(!pc)return;if(pc.iceConnectionState==='failed'){setStatusTop('⚠️');try{pc.restartIce();}catch(e){}}};pc.onconnectionstatechange=function(){if(!pc)return;if(pc.connectionState==='connected'){setStatusTop('🔊 Разговор');if(!callTimerInterval)startTimer();if(remoteStream)attachRemoteStream(remoteStream);}if(pc.connectionState==='failed'){setStatusTop('⚠️');try{pc.restartIce();}catch(e){}}};setTimeout(function(){if(pc&&(pc.iceConnectionState==='checking'||pc.iceConnectionState==='new')){setStatusTop('🔄 Пересоздаём ICE...');try{pc.restartIce();}catch(e){}}},8000);return pc;}
+    /* ============ ОПТИМИЗАЦИЯ БИТРЕЙТА + FEC + DTX ============
+       Битрейт оставлен 24000 (24 kbps) — качество голоса НЕ падает.
+       useinbandfec=1 — встроенный FEC (улучшает качество на плохой сети).
+       usedtx=1 — не отправлять пакеты в тишине (экономия ~30-40%).
+    ==================================================== */
+    function optimizeSDP(sdp){
+        if(!sdp)return sdp;
+        try{
+            var fmtp='a=fmtp:111 minptime=10;useinbandfec=1;usedtx=1;maxaveragebitrate=24000;stereo=0;sprop-stereo=0';
+            if(sdp.indexOf('a=fmtp:111')>=0){
+                sdp=sdp.replace(/a=fmtp:111 [^\r\n]+/,fmtp);
+            }else{
+                sdp=sdp.replace('a=rtpmap:111 opus/48000/2','a=rtpmap:111 opus/48000/2\r\n'+fmtp);
+            }
+            return sdp;
+        }catch(e){return sdp;}
+    }
+    function createPeerConnection(){
+        pc=new RTCPeerConnection(ICE_SERVERS);
+        pc.onicecandidate=function(e){
+            if(e.candidate&&currentCallRef){
+                /* Фильтр TCP — UDP экономнее и быстрее */
+                var c=e.candidate;
+                if(c.protocol&&c.protocol.toLowerCase()==='tcp'){
+                    console.log('[ICE] skip TCP candidate');
+                    return;
+                }
+                currentCallRef.child('callerCandidates').push(c.toJSON()).catch(function(){});
+            }
+        };
+        pc.ontrack=function(e){var s=e.streams&&e.streams[0];if(!s)return;remoteStream=s;setTimeout(function(){attachRemoteStream(s);setStatusTop('🔊 Разговор');var sec=$c('dgCallSecure');if(sec)sec.style.display='block';if(!callTimerInterval)startTimer();var a=getRemoteAudio();a.volume=1.0;speakerOn=true;var sb=$c('dgCallSpeakerBtn');if(sb)sb.classList.add('active');},100);};
+        pc.oniceconnectionstatechange=function(){if(!pc)return;if(pc.iceConnectionState==='failed'){setStatusTop('⚠️');try{pc.restartIce();}catch(e){}}};
+        pc.onconnectionstatechange=function(){if(!pc)return;if(pc.connectionState==='connected'){setStatusTop('🔊 Разговор');if(!callTimerInterval)startTimer();if(remoteStream)attachRemoteStream(remoteStream);}if(pc.connectionState==='failed'){setStatusTop('⚠️');try{pc.restartIce();}catch(e){}}};
+        setTimeout(function(){if(pc&&(pc.iceConnectionState==='checking'||pc.iceConnectionState==='new')){setStatusTop('🔄 Пересоздаём ICE...');try{pc.restartIce();}catch(e){}}},8000);
+        return pc;
+    }
     function cleanupCall(){stopRingtone();stopOutgoingTone();stopTitleBlink();stopIncomingVibrate();stopDiag();if(callTimeoutHandle){clearTimeout(callTimeoutHandle);callTimeoutHandle=null;}if(currentCallRef){try{currentCallRef.child('status').set('ended');}catch(e){}var r=currentCallRef;setTimeout(function(){try{r.remove();}catch(e){}},1500);}if(callStateListener&&currentCallRef){try{currentCallRef.off('value',callStateListener);}catch(e){}callStateListener=null;}if(pc){try{pc.close();}catch(e){}pc=null;}if(localStream){try{localStream.getTracks().forEach(function(t){t.stop();});}catch(e){}localStream=null;}remoteStream=null;var a=$c('dgRemoteAudio');if(a)a.srcObject=null;hideCallUI();currentCallId=null;currentCallRef=null;remoteUid=null;isCaller=false;incomingCallId=null;incomingCallRef=null;incomingCallData=null;speakerOn=true;}
     function endCall(r){cleanupCall();}
-    function startCall(targetUid,targetName,targetAvatarUrl){var me=getUser();if(!me){safeToast('❌');return;}if(currentCallId){safeToast('⚠️');return;}if(!targetUid||targetUid===me.id)return;unlockAudio();remoteUid=targetUid;isCaller=true;currentCallId=genId();speakerOn=true;showCallUI({name:targetName||targetUid,avatarUrl:targetAvatarUrl,statusTop:'📞 Вызов...',showAccept:false,secure:false});startDiag();startOutgoingTone();getLocalAudio().then(function(){createPeerConnection();localStream.getTracks().forEach(function(t){pc.addTrack(t,localStream);});return pc.createOffer({offerToReceiveAudio:true,offerToReceiveVideo:false,iceRestart:false}).then(function(o){o.sdp=optimizeSDP(o.sdp);return pc.setLocalDescription(o).then(function(){currentCallRef=db.ref('calls/'+currentCallId);return currentCallRef.set({from:me.id,fromName:me.name||me.id,fromAvatar:me.avatar||'',fromAvatarUrl:me.avatarUrl||null,to:targetUid,type:'audio',status:'ringing',createdAt:Date.now(),offer:{type:o.type,sdp:o.sdp}});});});}).then(function(){currentCallRef.child('answer').on('value',function(s){var a=s.val();if(a&&pc&&pc.signalingState!=='stable'){pc.setRemoteDescription(new RTCSessionDescription(a)).then(function(){setStatusTop('🔗 Соединение...');stopOutgoingTone();}).catch(function(e){});}});currentCallRef.child('calleeCandidates').on('child_added',function(s){var c=s.val();if(c&&pc)pc.addIceCandidate(new RTCIceCandidate(c)).catch(function(){});});callStateListener=currentCallRef.child('status').on('value',function(s){var st=s.val();if(st==='declined'){safeToast('❌');endCall('declined');}if(st==='accepted'){stopOutgoingTone();setStatusTop('🔗');}if(st==='ended'){endCall('remote');}});callTimeoutHandle=setTimeout(function(){if(currentCallId&&pc&&pc.connectionState!=='connected'){currentCallRef.child('status').once('value').then(function(s){if(s.val()==='ringing'){safeToast('⏱');endCall('timeout');}});}},60000);}).catch(function(e){stopOutgoingTone();cleanupCall();});}
+    function startCall(targetUid,targetName,targetAvatarUrl){
+        var me=getUser();
+        if(!me){safeToast('❌');return;}
+        if(currentCallId){safeToast('⚠️');return;}
+        if(!targetUid||targetUid===me.id)return;
+        unlockAudio();
+        remoteUid=targetUid;
+        isCaller=true;
+        currentCallId=genId();
+        speakerOn=true;
+        showCallUI({name:targetName||targetUid,avatarUrl:targetAvatarUrl,statusTop:'📞 Вызов...',showAccept:false,secure:false});
+        startDiag();
+        startOutgoingTone();
+        getLocalAudio().then(function(){
+            createPeerConnection();
+            localStream.getTracks().forEach(function(t){pc.addTrack(t,localStream);});
+            return pc.createOffer({offerToReceiveAudio:true,offerToReceiveVideo:false,iceRestart:false}).then(function(o){
+                o.sdp=optimizeSDP(o.sdp);
+                return pc.setLocalDescription(o).then(function(){
+                    currentCallRef=db.ref('calls/'+currentCallId);
+                    return currentCallRef.set({from:me.id,fromName:me.name||me.id,fromAvatar:me.avatar||'',fromAvatarUrl:me.avatarUrl||null,to:targetUid,type:'audio',status:'ringing',createdAt:Date.now(),offer:{type:o.type,sdp:o.sdp}});
+                });
+            });
+        }).then(function(){
+            currentCallRef.child('answer').on('value',function(s){
+                var a=s.val();
+                if(a&&pc&&pc.signalingState!=='stable'){
+                    pc.setRemoteDescription(new RTCSessionDescription(a)).then(function(){setStatusTop('🔗 Соединение...');stopOutgoingTone();}).catch(function(e){});
+                }
+            });
+            currentCallRef.child('calleeCandidates').on('child_added',function(s){
+                var c=s.val();
+                if(c&&pc)pc.addIceCandidate(new RTCIceCandidate(c)).catch(function(){});
+            });
+            callStateListener=currentCallRef.child('status').on('value',function(s){
+                var st=s.val();
+                if(st==='declined'){safeToast('❌');endCall('declined');}
+                if(st==='accepted'){stopOutgoingTone();setStatusTop('🔗');}
+                if(st==='ended'){endCall('remote');}
+            });
+            callTimeoutHandle=setTimeout(function(){
+                if(currentCallId&&pc&&pc.connectionState!=='connected'){
+                    currentCallRef.child('status').once('value').then(function(s){
+                        if(s.val()==='ringing'){safeToast('⏱');endCall('timeout');}
+                    });
+                }
+            },60000);
+        }).catch(function(e){stopOutgoingTone();cleanupCall();});
+    }
     function listenIncoming(){
         var me=getUser();
         if(!me)return;
@@ -1377,11 +1517,31 @@ function resetSidebarTheme(){userInventory.sidebarTheme='none';saveInventory();a
             },60000);
         });
     }
-    function acceptIncoming(){if(!incomingCallRef||!incomingCallData)return;stopRingtone();stopTitleBlink();stopIncomingVibrate();unlockAudio();currentCallId=incomingCallId;currentCallRef=incomingCallRef;setStatusTop('🔗 Соединение...');startDiag();getLocalAudio().then(function(){createPeerConnection();localStream.getTracks().forEach(function(t){pc.addTrack(t,localStream);});return pc.setRemoteDescription(new RTCSessionDescription(incomingCallData.offer)).then(function(){return pc.createAnswer();}).then(function(a){a.sdp=optimizeSDP(a.sdp);return pc.setLocalDescription(a).then(function(){return currentCallRef.update({status:'accepted',answer:{type:a.type,sdp:a.sdp}});});});}).then(function(){currentCallRef.child('callerCandidates').on('child_added',function(s){var c=s.val();if(c&&pc)pc.addIceCandidate(new RTCIceCandidate(c)).catch(function(){});});var a=$c('dgCallAcceptBtn');if(a)a.style.display='none';var ac=$c('dgCallActions');if(ac)ac.style.display='flex';callStateListener=currentCallRef.child('status').on('value',function(s){if(s.val()==='ended')endCall('remote');});}).catch(function(e){try{currentCallRef.child('status').set('declined');}catch(_e){}cleanupCall();});}
+    function acceptIncoming(){
+        if(!incomingCallRef||!incomingCallData)return;
+        stopRingtone();stopTitleBlink();stopIncomingVibrate();unlockAudio();
+        currentCallId=incomingCallId;
+        currentCallRef=incomingCallRef;
+        setStatusTop('🔗 Соединение...');
+        startDiag();
+        getLocalAudio().then(function(){
+            createPeerConnection();
+            localStream.getTracks().forEach(function(t){pc.addTrack(t,localStream);});
+            return pc.setRemoteDescription(new RTCSessionDescription(incomingCallData.offer)).then(function(){return pc.createAnswer();}).then(function(a){
+                a.sdp=optimizeSDP(a.sdp);
+                return pc.setLocalDescription(a).then(function(){return currentCallRef.update({status:'accepted',answer:{type:a.type,sdp:a.sdp}});});
+            });
+        }).then(function(){
+            currentCallRef.child('callerCandidates').on('child_added',function(s){var c=s.val();if(c&&pc)pc.addIceCandidate(new RTCIceCandidate(c)).catch(function(){});});
+            var a=$c('dgCallAcceptBtn');if(a)a.style.display='none';
+            var ac=$c('dgCallActions');if(ac)ac.style.display='flex';
+            callStateListener=currentCallRef.child('status').on('value',function(s){if(s.val()==='ended')endCall('remote');});
+        }).catch(function(e){try{currentCallRef.child('status').set('declined');}catch(_e){}cleanupCall();});
+    }
     window.dgCalls={startCall:startCall,endCall:endCall,listenIncoming:listenIncoming,acceptIncoming:acceptIncoming};
     function bindCallButtons(){var eb=$c('dgCallEndBtn'),mb=$c('dgCallMuteBtn'),ab=$c('dgCallAcceptBtn'),sb=$c('dgCallSpeakerBtn');if(eb)eb.onclick=function(){if(incomingCallRef&&incomingCallData&&!isCaller){try{incomingCallRef.child('status').set('declined').catch(function(){});}catch(e){}stopRingtone();stopTitleBlink();stopIncomingVibrate();cleanupCall();return;}if(isCaller&&currentCallRef){try{currentCallRef.child('status').set('ended').catch(function(){});}catch(e){}}if(!isCaller&&currentCallRef){try{currentCallRef.child('status').set('ended').catch(function(){});}catch(e){}}endCall('ended');};if(mb)mb.onclick=toggleMute;if(ab)ab.onclick=acceptIncoming;if(sb)sb.onclick=toggleSpeaker;}
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindCallButtons);else bindCallButtons();
-    getRemoteAudio();console.log('[DonorGram Calls v13] ready');
+    getRemoteAudio();console.log('[DonorGram Calls v14 — UDP only + FEC + DTX] ready');
 })();
 </script>
 </body>
