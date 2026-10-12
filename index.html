@@ -8,8 +8,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
 body{background:#1a1a2e;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;padding:8px;position:fixed;width:100%;overflow:hidden}
@@ -245,9 +243,6 @@ input:checked+.slider:before{transform:translateX(26px)}
 .notif-permission-bar{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:10px 16px;border-radius:30px;font-size:13px;z-index:99997;display:none;align-items:center;gap:10px}
 .notif-permission-bar.show{display:flex}
 .notif-permission-bar button{background:#fff;color:#667eea;border:none;border-radius:20px;padding:5px 12px;font-weight:700;font-size:12px;cursor:pointer}
-#gpsMapModal .modal-content{padding:0;max-width:100%;width:100%;height:100vh;border-radius:0;overflow:hidden;display:flex;flex-direction:column}
-.gps-map-header{padding:14px 18px;display:flex;align-items:center;gap:12px;background:#fff;border-bottom:1px solid #e8edf2}
-#leafletMap{flex:1;width:100%;background:#e5e5e5}
 .sticker-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
 .sticker-cell{font-size:28px;text-align:center;cursor:pointer;padding:6px;border-radius:8px}
 .sticker-cell:active{background:#f0f4ff;transform:scale(.9)}
@@ -345,7 +340,6 @@ input:checked+.slider:before{transform:translateX(26px)}
   <div class="user-info"><h3 id="userName">User</h3><p>🟢 <span id="userOnline">в сети</span></p></div>
 </div>
 <div class="actions">
-<button class="icon-btn" id="gpsBtn" type="button"><i class="fas fa-map-marked-alt"></i></button>
 <button class="icon-btn" id="createBtn" type="button"><i class="fas fa-plus-circle"></i></button>
 <button class="icon-btn" id="settingsBtn" type="button"><i class="fas fa-cog"></i></button>
 <button class="icon-btn" id="logoutBtn" type="button"><i class="fas fa-sign-out-alt"></i></button>
@@ -547,11 +541,6 @@ input:checked+.slider:before{transform:translateX(26px)}
 <div style="aspect-ratio:1;background:#1a1a2e;border-radius:12px;cursor:pointer" data-bg="#1a1a2e"></div>
 </div></div></div>
 
-<div class="modal" id="gpsMapModal"><div class="modal-content">
-<div class="gps-map-header"><button class="back-btn" id="gpsMapBack" type="button"><i class="fas fa-arrow-left"></i></button><h3>📍 Карта</h3></div>
-<div id="leafletMap"></div>
-</div></div>
-
 <div class="image-viewer" id="imageViewer"><button class="close-btn" type="button" id="closeImgBtn">✕</button><img id="viewedImage"></div>
 <div class="video-viewer" id="videoViewer"><button class="close-btn" type="button" id="closeVidBtn">✕</button><video id="viewedVideo" controls></video></div>
 
@@ -590,11 +579,6 @@ function mediaGet(id){return openMediaDB().then(function(d){return new Promise(f
 function mediaPut(id,url){return openMediaDB().then(function(d){return new Promise(function(res){try{var tx=d.transaction(MEDIA_ST,'readwrite');var st=tx.objectStore(MEDIA_ST);st.put({id:id,url:url,ts:Date.now()});tx.oncomplete=function(){res(true);};tx.onerror=function(){res(false);};}catch(e){res(false);}});}).catch(function(){return false;});}
 function compressImage(file,maxDim,quality){return new Promise(function(res){var img=new Image();var url=URL.createObjectURL(file);img.onload=function(){var w=img.width,h=img.height;if(w>maxDim||h>maxDim){if(w>h){h=Math.round(h*maxDim/w);w=maxDim;}else{w=Math.round(w*maxDim/h);h=maxDim;}}var c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);res(c.toDataURL('image/jpeg',quality));};img.onerror=function(){URL.revokeObjectURL(url);res(null);};img.src=url;});}
 
-/* ============ ОПТИМИЗАЦИЯ ТРАФИКА ЗВОНКОВ ============
-   - Только UDP (без TCP): -10-20% трафика, качество не страдает
-   - Убран отдельный STUN от Metered (TURN сам умеет STUN)
-   - Оставлен публичный STUN Google для P2P-случаев
-================================================= */
 var ICE_SERVERS={iceServers:[
     {urls:'turn:global.relay.metered.ca:443',username:'ea04614136046595f92339d9',credential:'/f3WYIMo8m6vYy/B'},
     {urls:'turn:global.relay.metered.ca:80',username:'ea04614136046595f92339d9',credential:'/f3WYIMo8m6vYy/B'},
@@ -613,7 +597,6 @@ let _lastChatsHash='',typingListenerRef=null,typingListenerCb=null,typingTimer=n
 let notifInitialized=false,lastSeenMsgTs={},notifEnabled=LS.get('notif_enabled')!=='false';
 let _usersSubscriptions={};
 let _usersCacheLoaded=false,_allUsersCache={},_userSearchTimer=null;
-let gpsMap=null;
 var _keepAliveCtx=null,_keepAliveOsc=null,_keepAliveGain=null;
 const MSG_LIMIT=20,PAGE_SIZE=20;
 window.currentUser=null;
@@ -657,8 +640,6 @@ function viewImage(url){$('viewedImage').src=url;openModal('imageViewer');}
 function closeImageViewer(){closeModal('imageViewer');}
 function viewVideo(url){const v=$('viewedVideo');v.src=url;openModal('videoViewer');v.play();}
 function closeVideoViewer(){const v=$('viewedVideo');v.pause();v.src='';closeModal('videoViewer');}
-function saveChatsCache(){if(!currentUser)return;try{LS.set('cache_chats_'+currentUser.id,JSON.stringify(state.userChats));LS.set('cache_users_'+currentUser.id,JSON.stringify(state.users));}catch(e){}}
-function loadChatsCache(){if(!currentUser)return false;try{var cc=LS.get('cache_chats_'+currentUser.id);var cu=LS.get('cache_users_'+currentUser.id);if(cu)state.users=JSON.parse(cu)||{};if(cc){state.userChats=JSON.parse(cc)||{};_lastChatsHash='';renderChats();}return true;}catch(e){return false;}}
 function startKeepAlive(){if(_keepAliveCtx)return;try{var C=window.AudioContext||window.webkitAudioContext;if(!C)return;_keepAliveCtx=new C();_keepAliveOsc=_keepAliveCtx.createOscillator();_keepAliveGain=_keepAliveCtx.createGain();_keepAliveOsc.frequency.value=1;_keepAliveOsc.type='sine';_keepAliveGain.gain.value=0.0001;_keepAliveOsc.connect(_keepAliveGain);_keepAliveGain.connect(_keepAliveCtx.destination);_keepAliveOsc.start();if(_keepAliveCtx.state==='suspended'){try{_keepAliveCtx.resume();}catch(e){}}}catch(e){}}
 function applySidebarTheme(){const sb=$('sidebar');const ov=$('sidebarOverlay');if(!sb)return;const tid=userInventory.sidebarTheme||'none';sb.style.backgroundImage='';sb.style.background='#f4f7fc';sb.classList.remove('matrix-mode');if(ov)ov.style.background='rgba(255,255,255,0)';if(userInventory.spacegodType==='hacker'&&!userInventory.spacegodDisabled){sb.style.background='#000';sb.classList.add('matrix-mode');if(ov)ov.style.background='rgba(0,0,0,.35)';return;}if(tid==='custom'){if(userInventory.sidebarCustomImg){sb.style.background='transparent';sb.style.backgroundImage='url('+userInventory.sidebarCustomImg+')';sb.style.backgroundSize='cover';if(ov)ov.style.background='rgba(255,255,255,.4)';}return;}const theme=SPACEGOD_THEMES.find(t=>t.id===tid)||SPACEGOD_THEMES[0];if(theme.id==='none'){sb.style.background='#f4f7fc';}else{if(theme.bg.indexOf('linear-gradient')===0)sb.style.backgroundImage=theme.bg;else sb.style.background=theme.bg;if(ov)ov.style.background='rgba(255,255,255,.2)';}}
 function applySpaceGodToUI(){const h=$('mainHeader');if(!h)return;['sg-spacegod','sg-spacecosmos','sg-spacemint','sg-hacker'].forEach(c=>h.classList.remove(c));if(userInventory.spacegodDisabled)return;const t=userInventory.spacegodType;if(t==='spacegod')h.classList.add('sg-spacegod');else if(t==='spacecosmos')h.classList.add('sg-spacecosmos');else if(t==='spacemint')h.classList.add('sg-spacemint');else if(t==='hacker')h.classList.add('sg-hacker');}
@@ -767,7 +748,6 @@ document.querySelectorAll('#msgActionSheet .msg-act-btn').forEach(function(btn){
     });
 });
 
-/* ============ ИСПРАВЛЕННЫЙ openChat с авто-восстановлением сломанных чатов ============ */
 function openChat(chatId){
     if(messagesListener&&currentChat){db.ref('messages/'+currentChat).off('child_added',messagesListener);messagesListener=null;}
     if(typingListenerRef&&typingListenerCb){try{typingListenerRef.off('value',typingListenerCb);}catch(e){}}
@@ -780,14 +760,8 @@ function openChat(chatId){
         });
         return;
     }
-    
-    /* ============================================================
-       АВТО-ВОССТАНОВЛЕНИЕ СЛОМАННЫХ ЧАТОВ
-       Если чат создан старым кодом и в нём нет type/name/participants —
-       восстанавливаем их из id чата и данных пользователя
-       ============================================================ */
     if(chat && (!chat.type || !chat.participants || !chat.name)){
-        console.log('[fix] Обнаружен сломанный чат:', chatId, chat);
+        console.log('[fix] Сломанный чат:', chatId, chat);
         if(!chat.type) chat.type = 'private';
         if(!chat.participants || Object.keys(chat.participants).length < 2){
             var parts = chatId.split('_');
@@ -799,7 +773,6 @@ function openChat(chatId){
                 db.ref('userChats/'+currentUser.id+'/'+chatId+'/type').set('private').catch(function(){});
                 db.ref('chats/'+chatId+'/participants').set(chat.participants).catch(function(){});
                 db.ref('chats/'+chatId+'/type').set('private').catch(function(){});
-                console.log('[fix] Восстановлены participants:', chat.participants);
             }
         }
         if(chat.participants){
@@ -832,8 +805,6 @@ function openChat(chatId){
         _lastChatsHash = '';
         debouncedRenderChats();
     }
-    /* ============ КОНЕЦ АВТО-ВОССТАНОВЛЕНИЯ ============ */
-    
     $('mainArea').classList.add('active');
     var chatName='Чат',otherId=null;
     if(chat.type==='private'){
@@ -894,7 +865,6 @@ function openChat(chatId){
     messagesListener=db.ref('messages/'+chatId).orderByChild('timestamp').limitToLast(1).on('child_added',function(snap){if(chatId!==currentChat)return;var id=snap.key;var m=snap.val();if(!m)return;messageCache[chatId]=messageCache[chatId]||{};if(messageCache[chatId][id])return;messageCache[chatId][id]=m;renderMessages(messageCache[chatId],chatId);});
     db.ref('hidden/'+currentUser.id+'/'+chatId).once('value').then(function(s){hiddenMessages[chatId]=s.val()||{};}).catch(function(){hiddenMessages[chatId]={};});
     if(chat.unreadCount){db.ref('userChats/'+currentUser.id+'/'+chatId+'/unreadCount').set(0);}
-    setTimeout(saveChatsCache,500);
 }
 function requestPushPermission(){return new Promise(function(res){try{if(!('Notification' in window)){res(false);return;}if(Notification.permission==='granted'){res(true);return;}Notification.requestPermission().then(function(p){res(p==='granted');});}catch(e){res(false);}});}
 function showSystemNotification(title,body,icon,tag){try{if(!('Notification' in window))return;if(Notification.permission!=='granted')return;var n=new Notification(title,{body:body||'',icon:icon||null,tag:tag});n.onclick=function(){window.focus();this.close();};setTimeout(function(){try{n.close();}catch(e){}},10000);}catch(e){}}
@@ -910,7 +880,9 @@ function renderChats(){
     var st=($('chatSearch')&&$('chatSearch').value||'').toLowerCase();
     var chats=Object.keys(state.userChats).map(function(id){return Object.assign({id:id},state.userChats[id]);});
     chats=chats.filter(function(c){
-        if(c.type==='notes')return true;
+        // ⭐ Скрываем notes
+        if(c.id && c.id.indexOf('notes_')===0)return false;
+        if(c.type==='notes')return false;
         if(c.type==='private'||!c.type){
             var o=Object.keys(c.participants||{}).find(function(id){return id!==currentUser.id;});
             if(!o){
@@ -925,9 +897,9 @@ function renderChats(){
         }
         return !st||((c.name||'').toLowerCase().indexOf(st)>=0);
     });
-    chats.sort(function(a,b){if(a.type==='notes')return -1;if(b.type==='notes')return 1;return(b.lastMessageTime||0)-(a.lastMessageTime||0);});
+    chats.sort(function(a,b){return(b.lastMessageTime||0)-(a.lastMessageTime||0);});
     list.innerHTML=chats.map(function(c){
-        var name='Чат',av='?',avS='';var t2=null,od='',isNotes=c.type==='notes';
+        var name='Чат',av='?',avS='';var t2=null,od='';
         var isPrivate=(c.type==='private'||!c.type);
         if(isPrivate){
             var o=Object.keys(c.participants||{}).find(function(id){return id!==currentUser.id;});
@@ -959,25 +931,22 @@ function renderChats(){
             var os=getOnlineStatus(o);
             od='<div class="online-dot '+(os.online?'':'offline')+'"></div>';
         }
-        else if(isNotes){name='⭐ Избранное';av='⭐';}
         else {name=c.name||'Группа';av='👥';}
         var bd=c.unreadCount?'<span class="badge">'+c.unreadCount+'</span>':'';var nH;
-        if(isNotes)nH='⭐ Избранное';
-        else if(t2){var cls=t2==='spacecosmos'?'rainbow-cosmos':t2==='spacemint'?'rainbow-mint':t2==='hacker'?'rainbow-hacker':'rainbow-name';nH='<span class="crown-icon">👑</span><span class="'+cls+'">'+esc(name)+'</span>';}
+        if(t2){var cls=t2==='spacecosmos'?'rainbow-cosmos':t2==='spacemint'?'rainbow-mint':t2==='hacker'?'rainbow-hacker':'rainbow-name';nH='<span class="crown-icon">👑</span><span class="'+cls+'">'+esc(name)+'</span>';}
         else nH=esc(name);
         var ac='chat-avatar '+(c.type==='group'?'group-avatar':'')+(t2?' '+t2:'');
         return '<div class="chat-item" data-chat="'+c.id+'" data-chat-type="'+(c.type||'private')+'"><div class="'+ac+'" style="'+avS+'">'+esc(av)+od+'</div><div class="chat-content"><div class="chat-name">'+nH+' '+bd+'</div><div class="chat-last">'+esc(c.lastMessage||'Нет сообщений')+'</div></div></div>';
     }).join('');
 }
-function ensureNotesChat(){if(!currentUser)return Promise.resolve();var nid='notes_'+currentUser.id;return db.ref('userChats/'+currentUser.id+'/'+nid).once('value').then(function(s){if(!s.exists()){return db.ref('userChats/'+currentUser.id+'/'+nid).set({id:nid,type:'notes',name:'⭐ Избранное',lastMessage:'',lastMessageTime:Date.now(),participants:{}});}});}
-function subscribeToUser(uid){if(!uid||uid===currentUser.id)return;if(_usersSubscriptions[uid])return;_usersSubscriptions[uid]=db.ref('users/'+uid).on('value',function(s){state.users[uid]=s.val()||state.users[uid]||{id:uid};debouncedRenderChats();saveChatsCache();});}
+function subscribeToUser(uid){if(!uid||uid===currentUser.id)return;if(_usersSubscriptions[uid])return;_usersSubscriptions[uid]=db.ref('users/'+uid).on('value',function(s){state.users[uid]=s.val()||state.users[uid]||{id:uid};debouncedRenderChats();});}
 function syncUserSubscriptions(){Object.keys(state.userChats).forEach(function(cid){var c=state.userChats[cid];if(!c||!c.participants)return;Object.keys(c.participants).forEach(function(uid){if(uid===currentUser.id)return;subscribeToUser(uid);});});}
 
 function loadData(){
     startNotificationWatcher();
-    db.ref('userChats/'+currentUser.id).on('child_added',function(s){state.userChats[s.key]=s.val();_lastChatsHash='';debouncedRenderChats();saveChatsCache();syncUserSubscriptions();});
-    db.ref('userChats/'+currentUser.id).on('child_changed',function(s){state.userChats[s.key]=s.val();_lastChatsHash='';debouncedRenderChats();saveChatsCache();});
-    db.ref('userChats/'+currentUser.id).on('child_removed',function(s){delete state.userChats[s.key];_lastChatsHash='';debouncedRenderChats();saveChatsCache();});
+    db.ref('userChats/'+currentUser.id).on('child_added',function(s){state.userChats[s.key]=s.val();_lastChatsHash='';debouncedRenderChats();syncUserSubscriptions();});
+    db.ref('userChats/'+currentUser.id).on('child_changed',function(s){state.userChats[s.key]=s.val();_lastChatsHash='';debouncedRenderChats();});
+    db.ref('userChats/'+currentUser.id).on('child_removed',function(s){delete state.userChats[s.key];_lastChatsHash='';debouncedRenderChats();});
     db.ref('inventory/'+currentUser.id).on('value',function(s){var v=s.val();if(v){userInventory=Object.assign({},userInventory,v);updateSpaceGodUI();applySidebarTheme();}});
     db.ref('users/'+currentUser.id+'/blockedUsers').on('value',function(s){blockedUsers=s.val()||{};debouncedRenderChats();});
 }
@@ -1138,21 +1107,19 @@ function saveProfileEdits(){
                 db.ref('userChats/'+oldId).once('value'),
                 db.ref('wall/'+oldId).once('value'),
                 db.ref('inventory/'+oldId).once('value'),
-                db.ref('locations/'+oldId).once('value'),
                 db.ref('hidden/'+oldId).once('value'),
                 db.ref('chats').once('value'),
                 db.ref('messages').once('value'),
                 db.ref('userChats').once('value'),
                 db.ref('users').once('value')
             ]).then(function(results){
-                var userData=results[0].val()||{};var ucData=results[1].val()||{};var wallData=results[2].val()||{};var invData=results[3].val()||{};var locData=results[4].val()||{};var hData=results[5].val()||{};var allChats=results[6].val()||{};var allMsgs=results[7].val()||{};var allUC=results[8].val()||{};var allUsers=results[9].val()||{};
+                var userData=results[0].val()||{};var ucData=results[1].val()||{};var wallData=results[2].val()||{};var invData=results[3].val()||{};var hData=results[4].val()||{};var allChats=results[5].val()||{};var allMsgs=results[6].val()||{};var allUC=results[7].val()||{};var allUsers=results[8].val()||{};
                 var updates={};
                 userData.name=nn;userData.bio=nb||userData.bio||'';if(un)userData.username=un;if(nat)userData.avatar=nat;if(np)userData.password=np;
                 updates['users/'+newId]=userData;updates['users/'+oldId]=null;
                 if(ucData)updates['userChats/'+newId]=ucData;updates['userChats/'+oldId]=null;
                 if(wallData)updates['wall/'+newId]=wallData;updates['wall/'+oldId]=null;
                 if(invData)updates['inventory/'+newId]=invData;updates['inventory/'+oldId]=null;
-                if(locData)updates['locations/'+newId]=locData;updates['locations/'+oldId]=null;
                 if(hData)updates['hidden/'+newId]=hData;updates['hidden/'+oldId]=null;
                 Object.keys(allChats).forEach(function(cid){var c=allChats[cid];if(!c||!c.participants)return;if(c.participants[oldId]){updates['chats/'+cid+'/participants/'+oldId]=null;updates['chats/'+cid+'/participants/'+newId]=true;}});
                 Object.keys(allMsgs).forEach(function(cid){var msgs=allMsgs[cid];if(!msgs)return;Object.keys(msgs).forEach(function(mid){var m=msgs[mid];if(!m)return;if(m.senderId===oldId){updates['messages/'+cid+'/'+mid+'/senderId']=newId;updates['messages/'+cid+'/'+mid+'/senderName']=nn;}});});
@@ -1265,8 +1232,6 @@ document.addEventListener('click',function(e){
     if(closest('#closeImgBtn')){e.preventDefault();closeImageViewer();return;}
     if(closest('#closeVidBtn')){e.preventDefault();closeVideoViewer();return;}
     if(closest('#notifPermBtn')){e.preventDefault();requestPushPermission().then(function(ok){if(ok)showToast('🔔');$('notifPermBar').classList.remove('show');});return;}
-    if(closest('#gpsBtn')){e.preventDefault();openModal('gpsMapModal');setTimeout(function(){if(!gpsMap){gpsMap=L.map('leafletMap',{zoomControl:true}).setView([55.75,37.62],6);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(gpsMap);}setTimeout(function(){gpsMap.invalidateSize();},200);},250);return;}
-    if(closest('#gpsMapBack')){e.preventDefault();closeModal('gpsMapModal');return;}
     if(closest('#chatInfoBtn')){e.preventDefault();var c2=state.userChats[currentChat];if(!c2)return;if(c2.type==='private'||!c2.type){var o2=window._currentChatOtherId||Object.keys(c2.participants||{}).find(function(id){return id!==currentUser.id;});if(!o2){var pp=c2.id.split('_');if(pp.length===2)o2=pp.find(function(x){return x!==currentUser.id;});}if(o2)showProfile(o2);}return;}
 });
 document.addEventListener('keydown',function(e){if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='loginPassword'){window.doLogin();}if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='messageInput'){sendMessage();}});
@@ -1278,6 +1243,10 @@ window.doLogin=function(){
     var doLoginWithId=function(uid,u){
         if(u.password!==pass){showToast('❌ Неверный пароль');return;}
         if(u.blocked){showToast('❌ Заблокирован');return;}
+        try{LS.remove('cache_chats_'+uid);LS.remove('cache_users_'+uid);}catch(e){}
+        state.userChats={};
+        state.users={};
+        _lastChatsHash='';
         currentUser={id:uid,name:u.name||uid,username:u.username||'',avatar:u.avatar||avatar,avatarUrl:u.avatarUrl||null,password:pass,bio:u.bio||''};
         window.currentUser=currentUser;
         db.ref('users/'+uid).update({status:'online'});
@@ -1320,8 +1289,6 @@ function startApp(){
     if(currentUser.avatarUrl){av.innerText='';av.parentElement.style.backgroundImage='url('+currentUser.avatarUrl+')';av.parentElement.style.backgroundSize='cover';}
     else av.innerText=currentUser.avatar||'U';
     updateSpaceGodUI();
-    loadChatsCache();
-    ensureNotesChat();
     setupPresence();
     loadData();
     applySidebarTheme();
@@ -1402,11 +1369,6 @@ function resetSidebarTheme(){userInventory.sidebarTheme='none';saveInventory();a
     function toggleMute(){if(!localStream)return;var tr=localStream.getAudioTracks()[0];if(!tr)return;tr.enabled=!tr.enabled;var b=$c('dgCallMuteBtn');if(!b)return;var i=b.querySelector('.dgIconCircle');if(tr.enabled){b.classList.remove('muted');if(i)i.innerHTML='<i class="fas fa-microphone"></i>';}else{b.classList.add('muted');if(i)i.innerHTML='<i class="fas fa-microphone-slash"></i>';}}
     function toggleSpeaker(){speakerOn=!speakerOn;var a=getRemoteAudio();a.volume=speakerOn?1.0:0.7;var b=$c('dgCallSpeakerBtn');if(b){if(speakerOn)b.classList.add('active');else b.classList.remove('active');}}
     function getLocalAudio(){return new Promise(function(res,rej){if(!navigator.mediaDevices){safeToast('❌');rej(new Error('no'));return;}navigator.mediaDevices.getUserMedia({audio:{echoCancellation:{ideal:true},noiseSuppression:{ideal:true},autoGainControl:{ideal:true},channelCount:1,sampleRate:48000},video:false}).then(function(s){localStream=s;res(s);}).catch(function(e){navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(function(s){localStream=s;res(s);}).catch(function(e2){safeToast('❌');rej(e2);});});});}
-    /* ============ ОПТИМИЗАЦИЯ БИТРЕЙТА + FEC + DTX ============
-       Битрейт оставлен 24000 (24 kbps) — качество голоса НЕ падает.
-       useinbandfec=1 — встроенный FEC (улучшает качество на плохой сети).
-       usedtx=1 — не отправлять пакеты в тишине (экономия ~30-40%).
-    ==================================================== */
     function optimizeSDP(sdp){
         if(!sdp)return sdp;
         try{
@@ -1423,10 +1385,9 @@ function resetSidebarTheme(){userInventory.sidebarTheme='none';saveInventory();a
         pc=new RTCPeerConnection(ICE_SERVERS);
         pc.onicecandidate=function(e){
             if(e.candidate&&currentCallRef){
-                /* Фильтр TCP — UDP экономнее и быстрее */
                 var c=e.candidate;
                 if(c.protocol&&c.protocol.toLowerCase()==='tcp'){
-                    console.log('[ICE] skip TCP candidate');
+                    console.log('[ICE] skip TCP');
                     return;
                 }
                 currentCallRef.child('callerCandidates').push(c.toJSON()).catch(function(){});
@@ -1541,7 +1502,7 @@ function resetSidebarTheme(){userInventory.sidebarTheme='none';saveInventory();a
     window.dgCalls={startCall:startCall,endCall:endCall,listenIncoming:listenIncoming,acceptIncoming:acceptIncoming};
     function bindCallButtons(){var eb=$c('dgCallEndBtn'),mb=$c('dgCallMuteBtn'),ab=$c('dgCallAcceptBtn'),sb=$c('dgCallSpeakerBtn');if(eb)eb.onclick=function(){if(incomingCallRef&&incomingCallData&&!isCaller){try{incomingCallRef.child('status').set('declined').catch(function(){});}catch(e){}stopRingtone();stopTitleBlink();stopIncomingVibrate();cleanupCall();return;}if(isCaller&&currentCallRef){try{currentCallRef.child('status').set('ended').catch(function(){});}catch(e){}}if(!isCaller&&currentCallRef){try{currentCallRef.child('status').set('ended').catch(function(){});}catch(e){}}endCall('ended');};if(mb)mb.onclick=toggleMute;if(ab)ab.onclick=acceptIncoming;if(sb)sb.onclick=toggleSpeaker;}
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindCallButtons);else bindCallButtons();
-    getRemoteAudio();console.log('[DonorGram Calls v14 — UDP only + FEC + DTX] ready');
+    getRemoteAudio();console.log('[DonorGram v15 — GPS removed, UDP only] ready');
 })();
 </script>
 </body>
