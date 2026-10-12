@@ -849,11 +849,16 @@ function openChat(chatId){
         var cls=t2==='spacecosmos'?'rainbow-cosmos':t2==='spacemint'?'rainbow-mint':t2==='hacker'?'rainbow-hacker':'rainbow-name';
         $('chatName').innerHTML=t2?'<span class="crown-icon">👑</span><span class="'+cls+'">'+esc(chatName)+'</span>':esc(chatName);
         $('chatStatus').innerHTML=getOnlineStatus(otherId).text;
+    } else if(chat.type==='notes'){
+        $('chatStatus').innerHTML='';
+        $('chatAvatar').style.backgroundImage='';
+        $('chatAvatar').innerText='⭐';
+        $('chatName').innerText='⭐ Избранное';
     } else {
         $('chatStatus').innerHTML='';
         $('chatAvatar').style.backgroundImage='';
-        $('chatAvatar').innerText=chat.type==='notes'?'⭐':'👥';
-        $('chatName').innerText=chat.name||'Чат';
+        $('chatAvatar').innerText='👥';
+        $('chatName').innerText=chat.name||'Группа';
     }
     var cb=$('callBtn');
     if(cb)cb.style.display=(chat.type==='private'&&otherId)?'flex':'none';
@@ -880,9 +885,7 @@ function renderChats(){
     var st=($('chatSearch')&&$('chatSearch').value||'').toLowerCase();
     var chats=Object.keys(state.userChats).map(function(id){return Object.assign({id:id},state.userChats[id]);});
     chats=chats.filter(function(c){
-        // ⭐ Скрываем notes
-        if(c.id && c.id.indexOf('notes_')===0)return false;
-        if(c.type==='notes')return false;
+        if(c.type==='notes')return true;
         if(c.type==='private'||!c.type){
             var o=Object.keys(c.participants||{}).find(function(id){return id!==currentUser.id;});
             if(!o){
@@ -897,7 +900,11 @@ function renderChats(){
         }
         return !st||((c.name||'').toLowerCase().indexOf(st)>=0);
     });
-    chats.sort(function(a,b){return(b.lastMessageTime||0)-(a.lastMessageTime||0);});
+    chats.sort(function(a,b){
+        if(a.type==='notes')return -1;
+        if(b.type==='notes')return 1;
+        return(b.lastMessageTime||0)-(a.lastMessageTime||0);
+    });
     list.innerHTML=chats.map(function(c){
         var name='Чат',av='?',avS='';var t2=null,od='';
         var isPrivate=(c.type==='private'||!c.type);
@@ -931,13 +938,31 @@ function renderChats(){
             var os=getOnlineStatus(o);
             od='<div class="online-dot '+(os.online?'':'offline')+'"></div>';
         }
+        else if(c.type==='notes'){name='⭐ Избранное';av='⭐';}
         else {name=c.name||'Группа';av='👥';}
         var bd=c.unreadCount?'<span class="badge">'+c.unreadCount+'</span>':'';var nH;
-        if(t2){var cls=t2==='spacecosmos'?'rainbow-cosmos':t2==='spacemint'?'rainbow-mint':t2==='hacker'?'rainbow-hacker':'rainbow-name';nH='<span class="crown-icon">👑</span><span class="'+cls+'">'+esc(name)+'</span>';}
+        if(c.type==='notes')nH='⭐ Избранное';
+        else if(t2){var cls=t2==='spacecosmos'?'rainbow-cosmos':t2==='spacemint'?'rainbow-mint':t2==='hacker'?'rainbow-hacker':'rainbow-name';nH='<span class="crown-icon">👑</span><span class="'+cls+'">'+esc(name)+'</span>';}
         else nH=esc(name);
         var ac='chat-avatar '+(c.type==='group'?'group-avatar':'')+(t2?' '+t2:'');
         return '<div class="chat-item" data-chat="'+c.id+'" data-chat-type="'+(c.type||'private')+'"><div class="'+ac+'" style="'+avS+'">'+esc(av)+od+'</div><div class="chat-content"><div class="chat-name">'+nH+' '+bd+'</div><div class="chat-last">'+esc(c.lastMessage||'Нет сообщений')+'</div></div></div>';
     }).join('');
+}
+function ensureNotesChat(){
+    if(!currentUser)return Promise.resolve();
+    var nid='notes_'+currentUser.id;
+    return db.ref('userChats/'+currentUser.id+'/'+nid).once('value').then(function(s){
+        if(!s.exists()){
+            return db.ref('userChats/'+currentUser.id+'/'+nid).set({
+                id:nid,
+                type:'notes',
+                name:'⭐ Избранное',
+                lastMessage:'',
+                lastMessageTime:Date.now(),
+                participants:{}
+            });
+        }
+    });
 }
 function subscribeToUser(uid){if(!uid||uid===currentUser.id)return;if(_usersSubscriptions[uid])return;_usersSubscriptions[uid]=db.ref('users/'+uid).on('value',function(s){state.users[uid]=s.val()||state.users[uid]||{id:uid};debouncedRenderChats();});}
 function syncUserSubscriptions(){Object.keys(state.userChats).forEach(function(cid){var c=state.userChats[cid];if(!c||!c.participants)return;Object.keys(c.participants).forEach(function(uid){if(uid===currentUser.id)return;subscribeToUser(uid);});});}
@@ -1289,6 +1314,7 @@ function startApp(){
     if(currentUser.avatarUrl){av.innerText='';av.parentElement.style.backgroundImage='url('+currentUser.avatarUrl+')';av.parentElement.style.backgroundSize='cover';}
     else av.innerText=currentUser.avatar||'U';
     updateSpaceGodUI();
+    ensureNotesChat();
     setupPresence();
     loadData();
     applySidebarTheme();
@@ -1333,7 +1359,6 @@ function selectTheme(id){if(!userInventory.spacegod)return;if(id==='custom'){if(
 function uploadSidebarTheme(file){if(!userInventory.spacegod)return;compressImage(file,800,0.7).then(function(b64){if(!b64)return;userInventory.sidebarCustomImg=b64;userInventory.sidebarTheme='custom';saveInventory();applySidebarTheme();renderThemes();showToast('💾');});}
 function resetSidebarTheme(){userInventory.sidebarTheme='none';saveInventory();applySidebarTheme();renderThemes();showToast('💾');}
 
-/* ============ ЗВОНКИ ============ */
 (function(){
     'use strict';
     var pc=null,localStream=null,remoteStream=null;
@@ -1386,10 +1411,7 @@ function resetSidebarTheme(){userInventory.sidebarTheme='none';saveInventory();a
         pc.onicecandidate=function(e){
             if(e.candidate&&currentCallRef){
                 var c=e.candidate;
-                if(c.protocol&&c.protocol.toLowerCase()==='tcp'){
-                    console.log('[ICE] skip TCP');
-                    return;
-                }
+                if(c.protocol&&c.protocol.toLowerCase()==='tcp'){return;}
                 currentCallRef.child('callerCandidates').push(c.toJSON()).catch(function(){});
             }
         };
@@ -1502,7 +1524,7 @@ function resetSidebarTheme(){userInventory.sidebarTheme='none';saveInventory();a
     window.dgCalls={startCall:startCall,endCall:endCall,listenIncoming:listenIncoming,acceptIncoming:acceptIncoming};
     function bindCallButtons(){var eb=$c('dgCallEndBtn'),mb=$c('dgCallMuteBtn'),ab=$c('dgCallAcceptBtn'),sb=$c('dgCallSpeakerBtn');if(eb)eb.onclick=function(){if(incomingCallRef&&incomingCallData&&!isCaller){try{incomingCallRef.child('status').set('declined').catch(function(){});}catch(e){}stopRingtone();stopTitleBlink();stopIncomingVibrate();cleanupCall();return;}if(isCaller&&currentCallRef){try{currentCallRef.child('status').set('ended').catch(function(){});}catch(e){}}if(!isCaller&&currentCallRef){try{currentCallRef.child('status').set('ended').catch(function(){});}catch(e){}}endCall('ended');};if(mb)mb.onclick=toggleMute;if(ab)ab.onclick=acceptIncoming;if(sb)sb.onclick=toggleSpeaker;}
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindCallButtons);else bindCallButtons();
-    getRemoteAudio();console.log('[DonorGram v15 — GPS removed, UDP only] ready');
+    getRemoteAudio();console.log('[DonorGram v15 — GPS removed, notes restored] ready');
 })();
 </script>
 </body>
